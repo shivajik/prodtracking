@@ -3,22 +3,24 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/dist/index.js"
+      "destination": "/api"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/dist/public/assets/$1"
     },
     {
-      "source": "/assets/(.*)",
-      "destination": "/dist/public/assets/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/dist/public/index.html"
+      "src": "/(.*)",
+      "dest": "/dist/public/index.html"
     }
   ],
   "env": {
     "NODE_ENV": "production"
   },
   "functions": {
-    "dist/index.js": {
+    "api/index.js": {
       "maxDuration": 30
     }
   }
