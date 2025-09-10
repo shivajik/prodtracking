@@ -358,6 +358,43 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Test endpoint - bypass authentication to test database directly
+  app.get("/api/debug/products", async (req, res) => {
+    try {
+      console.log("🔍 Debug products endpoint called - NO AUTH REQUIRED");
+      
+      const allProducts = await storage.getAllProducts();
+      const pendingProducts = await storage.getProductsByStatus("pending");
+      const approvedProducts = await storage.getProductsByStatus("approved");
+      const rejectedProducts = await storage.getProductsByStatus("rejected");
+
+      const debugData = {
+        environment: process.env.NODE_ENV,
+        databaseUrl: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + "..." : "NOT SET",
+        timestamp: new Date().toISOString(),
+        totalProducts: allProducts.length,
+        productsByStatus: {
+          pending: pendingProducts.length,
+          approved: approvedProducts.length,
+          rejected: rejectedProducts.length
+        },
+        products: allProducts.map(p => ({
+          id: p.id,
+          uniqueId: p.uniqueId,
+          product: p.product,
+          status: p.status,
+          submittedBy: p.submittedBy
+        }))
+      };
+
+      console.log("🔍 Products debug:", JSON.stringify(debugData, null, 2));
+      res.json(debugData);
+    } catch (error) {
+      console.error("❌ Debug products error:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
