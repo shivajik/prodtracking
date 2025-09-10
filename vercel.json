@@ -1,26 +1,17 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "package.json",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["dist/**"]
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/dist/index.js"
+      "source": "/api/(.*)",
+      "destination": "/dist/index.js"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/dist/public/assets/$1"
+      "source": "/assets/(.*)",
+      "destination": "/dist/public/assets/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/dist/public/index.html"
+      "source": "/(.*)",
+      "destination": "/dist/public/index.html"
     }
   ],
   "env": {
