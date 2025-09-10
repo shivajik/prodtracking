@@ -260,6 +260,9 @@ async function createApp() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: false, limit: '50mb' }));
   
+  // Trust proxy - CRITICAL for production HTTPS cookie handling
+  app.set('trust proxy', 1);
+  
   // Session configuration
   app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
@@ -370,7 +373,7 @@ async function createApp() {
         }
       } else if (req.user?.role === "operator") {
         // Operators can only see their own products
-        products = await storage.getProductsBySubmitter(req.user.email);
+        products = await storage.getProductsBySubmitter(req.user.id);
       } else {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -468,7 +471,7 @@ async function createApp() {
         // Admins can edit any product
       } else if (req.user.role === "operator") {
         // Operators can only edit their own pending or rejected products
-        if (existingProduct.submittedBy !== req.user.email) {
+        if (existingProduct.submittedBy !== req.user.id) {
           return res.status(403).json({ message: "You can only edit your own products" });
         }
         if (existingProduct.status !== "pending" && existingProduct.status !== "rejected") {
