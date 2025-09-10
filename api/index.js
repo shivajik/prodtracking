@@ -1,24 +1,37 @@
-// Vercel serverless function
+// Vercel serverless function for Green Gold Seeds API
 import express from "express";
-import { registerRoutes } from "../server/routes.js";
 
-let app;
+// Create Express app for serverless function
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-// Initialize the app
-async function createApp() {
-  if (!app) {
-    app = express();
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: false }));
-    
-    // Initialize routes
-    await registerRoutes(app);
+// Import and register routes
+let routesRegistered = false;
+
+async function ensureRoutes() {
+  if (!routesRegistered) {
+    try {
+      const { registerRoutes } = await import('../server/routes.js');
+      await registerRoutes(app);
+      routesRegistered = true;
+    } catch (error) {
+      console.error('Failed to register routes:', error);
+      throw error;
+    }
   }
-  return app;
 }
 
 // Export the handler function for Vercel
 export default async function handler(req, res) {
-  const expressApp = await createApp();
-  return expressApp(req, res);
+  try {
+    await ensureRoutes();
+    return app(req, res);
+  } catch (error) {
+    console.error('Serverless function error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    });
+  }
 }
