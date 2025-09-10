@@ -2,18 +2,10 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
-  "functions": {
-    "dist/index.js": {
-      "runtime": "@vercel/node"
-    }
-  },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/index.js",
-      "headers": {
-        "Cache-Control": "no-cache"
-      }
+      "dest": "/index.js"
     },
     {
       "src": "/assets/(.*)",
