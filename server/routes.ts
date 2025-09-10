@@ -326,6 +326,38 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Debug endpoint for Vercel authentication testing
+  app.get("/api/debug/auth", async (req, res) => {
+    try {
+      console.log("🔍 Debug auth endpoint called");
+      
+      const debugInfo = {
+        isAuthenticated: req.isAuthenticated(),
+        user: req.user ? {
+          id: req.user.id,
+          username: req.user.username,
+          email: req.user.email,
+          role: req.user.role
+        } : null,
+        sessionID: req.sessionID,
+        hasSession: !!req.session,
+        environment: process.env.NODE_ENV,
+        databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+        timestamp: new Date().toISOString()
+      };
+
+      // Also test direct database access
+      const productCount = await storage.getAllProducts();
+      debugInfo.directProductCount = productCount.length;
+
+      console.log("🔍 Debug info:", JSON.stringify(debugInfo, null, 2));
+      res.json(debugInfo);
+    } catch (error) {
+      console.error("❌ Debug auth error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
