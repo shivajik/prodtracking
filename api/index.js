@@ -1,12 +1,6 @@
 // Vercel serverless function for Green Gold Seeds API
 import express from "express";
 import session from "express-session";
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
-
-const scryptAsync = promisify(scrypt);
 
 // Create Express app once
 let app;
@@ -14,6 +8,19 @@ let app;
 async function createApp() {
   if (app) return app;
   
+  try {
+    // Import the built server module
+    const { default: builtApp } = await import('../dist/index.js');
+    
+    if (builtApp && typeof builtApp === 'function') {
+      app = builtApp;
+      return app;
+    }
+  } catch (error) {
+    console.error('Failed to import built app, using fallback:', error);
+  }
+  
+  // Fallback Express app with basic authentication
   app = express();
   
   // Configure middleware
@@ -32,60 +39,34 @@ async function createApp() {
     }
   }));
   
-  app.use(passport.initialize());
-  app.use(passport.session());
-  
-  // Configure passport strategy
-  passport.use(new LocalStrategy(
-    { usernameField: 'username', passwordField: 'password' },
-    async (username, password, done) => {
-      try {
-        // Mock users for testing
-        const users = [
-          { id: '1', username: 'admin', password: 'admin123', role: 'admin', email: 'admin@test.com' },
-          { id: '2', username: 'op2', password: 'test123', role: 'operator', email: 'op@test.com' }
-        ];
-        
-        const user = users.find(u => u.username === username);
-        if (!user || user.password !== password) {
-          return done(null, false, { message: 'Invalid credentials' });
-        }
-        
-        return done(null, user);
-      } catch (error) {
-        return done(error);
-      }
+  // Simple authentication for fallback
+  app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    
+    if ((username === 'admin' && password === 'admin123') || 
+        (username === 'op2' && password === 'test123')) {
+      req.session.user = {
+        id: username === 'admin' ? '1' : '2',
+        username,
+        role: username === 'admin' ? 'admin' : 'operator',
+        email: username === 'admin' ? 'admin@test.com' : 'op@test.com'
+      };
+      res.json(req.session.user);
+    } else {
+      res.status(401).json({ message: 'Invalid credentials' });
     }
-  ));
-  
-  passport.serializeUser((user, done) => {
-    done(null, user.id);
   });
   
-  passport.deserializeUser((id, done) => {
-    const users = [
-      { id: '1', username: 'admin', role: 'admin', email: 'admin@test.com' },
-      { id: '2', username: 'op2', role: 'operator', email: 'op@test.com' }
-    ];
-    const user = users.find(u => u.id === id);
-    done(null, user);
-  });
-  
-  // API Routes
   app.get('/api/user', (req, res) => {
-    if (req.isAuthenticated()) {
-      res.json(req.user);
+    if (req.session?.user) {
+      res.json(req.session.user);
     } else {
       res.status(401).json({ message: 'Not authenticated' });
     }
   });
   
-  app.post('/api/login', passport.authenticate('local'), (req, res) => {
-    res.json(req.user);
-  });
-  
   app.post('/api/logout', (req, res) => {
-    req.logout((err) => {
+    req.session.destroy((err) => {
       if (err) {
         return res.status(500).json({ message: 'Logout failed' });
       }
@@ -94,19 +75,18 @@ async function createApp() {
   });
   
   app.get('/api/products', (req, res) => {
-    // Mock products for testing
-    const products = [
+    // Basic fallback products
+    res.json([
       {
         id: '1',
-        product: 'Test Product 1',
+        product: 'Fallback Product',
         brand: 'Test Brand',
-        status: 'pending',
-        uniqueId: 'TEST-001',
+        status: 'approved',
+        uniqueId: 'FALLBACK-001',
         mrp: 100,
         submittedBy: 'op@test.com'
       }
-    ];
-    res.json(products);
+    ]);
   });
   
   return app;
