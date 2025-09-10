@@ -29,8 +29,15 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  // Get session secret from environment or use a temporary default for development
+  const sessionSecret = process.env.SESSION_SECRET || 'temp-dev-secret-change-in-production-' + Date.now();
+  
+  if (!process.env.SESSION_SECRET) {
+    console.warn('⚠️  SESSION_SECRET not set! Using temporary secret for development. Please set SESSION_SECRET environment variable for production.');
+  }
+
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET!,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
