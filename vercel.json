@@ -1,17 +1,19 @@
 {
   "version": 2,
-  "rewrites": [
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/public",
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api"
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
     },
     {
-      "source": "/assets/(.*)",
-      "destination": "/dist/public/assets/$1"
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": "/dist/public/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ],
   "env": {
