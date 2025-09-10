@@ -1,199 +1,221 @@
-// Vercel serverless function for Green Gold Seeds API
+// Vercel serverless function for Green Gold Seeds API - Production Ready
 import express from "express";
 import session from "express-session";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { sql } from "drizzle-orm";
+import { pgTable, text, varchar, decimal, timestamp, boolean, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
+import { eq, and } from "drizzle-orm";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { createClient } from '@supabase/supabase-js';
+import { createHash, scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.DATABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+const scryptAsync = promisify(scrypt);
 
-// Schema validation (inline since we can't import from shared/schema.ts)
+// Database Schema
+const users = pgTable("users", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  role: text("role").notNull(), // 'operator' or 'admin'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+const products = pgTable("products", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  uniqueId: text("unique_id").notNull().unique(),
+  company: text("company").notNull(),
+  brand: text("brand").notNull(),
+  product: text("product").notNull(),
+  description: text("description").notNull(),
+  mrp: decimal("mrp", { precision: 10, scale: 2 }).notNull(),
+  netQty: text("net_qty").notNull(),
+  lotBatch: text("lot_batch").notNull(),
+  mfgDate: text("mfg_date").notNull(),
+  expiryDate: text("expiry_date").notNull(),
+  customerCare: text("customer_care").notNull(),
+  email: text("email").notNull(),
+  companyAddress: text("company_address").notNull(),
+  marketedBy: text("marketed_by").notNull(),
+  brochureUrl: text("brochure_url"),
+  brochureFilename: text("brochure_filename"),
+  status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
+  submissionDate: timestamp("submission_date").defaultNow(),
+  approvalDate: timestamp("approval_date"),
+  submittedBy: uuid("submitted_by").references(() => users.id),
+  approvedBy: uuid("approved_by").references(() => users.id),
+  rejectionReason: text("rejection_reason"),
+});
+
+// Validation Schemas
+const insertUserSchema = z.object({
+  username: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(6),
+  role: z.enum(["operator", "admin"]),
+});
+
 const insertProductSchema = z.object({
   uniqueId: z.string().optional(),
-  company: z.string().min(1, "Company is required"),
-  brand: z.string().min(1, "Brand is required"),
-  product: z.string().min(1, "Product is required"),
-  description: z.string().min(1, "Description is required"),
-  mrp: z.string().min(1, "MRP is required"),
-  netQty: z.string().min(1, "Net quantity is required"),
-  lotBatch: z.string().min(1, "Lot/Batch is required"),
-  mfgDate: z.string().min(1, "Manufacturing date is required"),
-  expiryDate: z.string().min(1, "Expiry date is required"),
-  customerCare: z.string().min(1, "Customer care is required"),
-  email: z.string().email("Valid email is required"),
-  companyAddress: z.string().min(1, "Company address is required"),
-  marketedBy: z.string().min(1, "Marketed by is required"),
+  company: z.string().min(1),
+  brand: z.string().min(1),
+  product: z.string().min(1),
+  description: z.string().min(1),
+  mrp: z.string().min(1),
+  netQty: z.string().min(1),
+  lotBatch: z.string().min(1),
+  mfgDate: z.string().min(1),
+  expiryDate: z.string().min(1),
+  customerCare: z.string().min(1),
+  email: z.string().email(),
+  companyAddress: z.string().min(1),
+  marketedBy: z.string().min(1),
   brochureUrl: z.string().optional(),
   brochureFilename: z.string().optional(),
   submittedBy: z.string().optional(),
 });
 
-// Storage functions for database operations
-const storage = {
-  async createUser(userData) {
-    const { data, error } = await supabase
-      .from('users')
-      .insert(userData)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
+// Database connection
+let db;
+let client;
 
-  async getUserByUsername(username) {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .single();
+function getDatabase() {
+  if (!db) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error("DATABASE_URL environment variable is not set");
+    }
     
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    client = postgres(connectionString, {
+      prepare: false,
+    });
+    db = drizzle(client);
+  }
+  return db;
+}
+
+// Storage functions
+const storage = {
+  async getUserByUsername(username) {
+    const db = getDatabase();
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0] || null;
   },
 
   async getUserByEmail(email) {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    const db = getDatabase();
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0] || null;
+  },
+
+  async getUserById(id) {
+    const db = getDatabase();
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0] || null;
+  },
+
+  async createUser(userData) {
+    const db = getDatabase();
+    const result = await db.insert(users).values(userData).returning();
+    return result[0];
   },
 
   async getAllUsers() {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    const db = getDatabase();
+    return await db.select().from(users);
   },
 
   async createProduct(productData) {
-    const { data, error } = await supabase
-      .from('products')
-      .insert({
-        ...productData,
-        submission_date: new Date().toISOString(),
-        status: 'pending'
-      })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    const db = getDatabase();
+    const result = await db.insert(products).values(productData).returning();
+    return result[0];
   },
 
   async getAllProducts() {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('submission_date', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    const db = getDatabase();
+    return await db.select().from(products);
   },
 
   async getProductsByStatus(status) {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('status', status)
-      .order('submission_date', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    const db = getDatabase();
+    return await db.select().from(products).where(eq(products.status, status));
   },
 
   async getProductsBySubmitter(submitterId) {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('submitted_by', submitterId)
-      .order('submission_date', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    const db = getDatabase();
+    const user = await this.getUserByEmail(submitterId);
+    if (!user) return [];
+    return await db.select().from(products).where(eq(products.submittedBy, user.id));
   },
 
   async getProductByUniqueId(uniqueId) {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('unique_id', uniqueId)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    const db = getDatabase();
+    const result = await db.select().from(products).where(eq(products.uniqueId, uniqueId)).limit(1);
+    return result[0] || null;
   },
 
   async getProductById(id) {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    const db = getDatabase();
+    const result = await db.select().from(products).where(eq(products.id, id)).limit(1);
+    return result[0] || null;
   },
 
-  async updateProductStatus(id, status, approvedBy, rejectionReason = null) {
+  async updateProductStatus(id, status, approvedById, rejectionReason = null) {
+    const db = getDatabase();
     const updateData = {
       status,
-      approved_by: approvedBy,
-      approval_date: new Date().toISOString(),
+      approvedBy: approvedById,
+      approvalDate: new Date(),
     };
-
+    
     if (rejectionReason) {
-      updateData.rejection_reason = rejectionReason;
+      updateData.rejectionReason = rejectionReason;
     }
 
-    const { data, error } = await supabase
-      .from('products')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    const result = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
+    return result[0] || null;
   },
 
   async updateProduct(id, updates) {
-    const { data, error } = await supabase
-      .from('products')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    const db = getDatabase();
+    const result = await db.update(products).set(updates).where(eq(products.id, id)).returning();
+    return result[0] || null;
   },
 
   async deleteProduct(id) {
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
-    return true;
+    const db = getDatabase();
+    const result = await db.delete(products).where(eq(products.id, id)).returning();
+    return result.length > 0;
   }
 };
 
-// Setup multer for file uploads (Note: In serverless, files are temporary)
+// Password verification function
+async function verifyPassword(password, hashedPassword) {
+  try {
+    const [hash, salt] = hashedPassword.split('.');
+    const buf = await scryptAsync(password, salt, 64);
+    return buf.toString('hex') === hash;
+  } catch (error) {
+    console.error('Password verification error:', error);
+    return false;
+  }
+}
+
+// Authentication middleware
+function isAuthenticated(req) {
+  return req.session && req.session.user;
+}
+
+// Generate unique ID for products
+function generateUniqueId() {
+  const year = new Date().getFullYear();
+  const timestamp = Date.now().toString().slice(-6);
+  return `GGS-${year}-${timestamp}`;
+}
+
+// Configure multer for file uploads (memory storage for serverless)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -201,7 +223,7 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /pdf|doc|docx|jpg|jpeg|png/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = allowedTypes.test(file.originalname.toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
     
     if (extname && mimetype) {
@@ -212,43 +234,6 @@ const upload = multer({
   }
 });
 
-// Generate unique ID for products
-function generateUniqueId() {
-  const year = new Date().getFullYear();
-  const timestamp = Date.now().toString().slice(-6);
-  return `GGS-${year}-${timestamp}`;
-}
-
-// Password hashing utility
-async function hashPassword(password) {
-  const { scrypt, randomBytes } = await import("crypto");
-  const { promisify } = await import("util");
-  const scryptAsync = promisify(scrypt);
-  
-  const salt = randomBytes(16).toString("hex");
-  const buf = await scryptAsync(password, salt, 64);
-  return `${buf.toString("hex")}.${salt}`;
-}
-
-// Authentication middleware
-function requireAuth(req, res, next) {
-  if (!req.session?.user) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-  req.user = req.session.user;
-  req.isAuthenticated = () => !!req.session?.user;
-  next();
-}
-
-function requireRole(role) {
-  return (req, res, next) => {
-    if (!req.session?.user || req.session.user.role !== role) {
-      return res.status(403).json({ message: "Access denied" });
-    }
-    next();
-  };
-}
-
 // Create Express app
 let app;
 
@@ -258,12 +243,12 @@ async function createApp() {
   app = express();
   
   // Configure middleware
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: false }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: false, limit: '50mb' }));
   
   // Session configuration
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -277,46 +262,38 @@ async function createApp() {
   app.post('/api/login', async (req, res) => {
     try {
       const { username, password } = req.body;
-      
+
       if (!username || !password) {
-        return res.status(400).json({ message: 'Username and password are required' });
+        return res.status(400).json({ message: "Username and password are required" });
       }
 
       const user = await storage.getUserByUsername(username);
       if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Verify password (simplified for production)
-      const [hash, salt] = user.password.split('.');
-      const { scrypt } = await import("crypto");
-      const { promisify } = await import("util");
-      const scryptAsync = promisify(scrypt);
-      
-      const buf = await scryptAsync(password, salt, 64);
-      const hashedAttempt = buf.toString('hex');
-
-      if (hash !== hashedAttempt) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+      const isValidPassword = await verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
       }
 
       req.session.user = {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role
+        role: user.role,
       };
 
       const { password: _, ...userResponse } = user;
       res.json(userResponse);
     } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ message: 'Internal server error' });
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
   app.get('/api/user', (req, res) => {
-    if (req.session?.user) {
+    if (isAuthenticated(req)) {
       res.json(req.session.user);
     } else {
       res.status(401).json({ message: 'Not authenticated' });
@@ -333,8 +310,12 @@ async function createApp() {
   });
 
   // Product routes
-  app.post("/api/products", requireAuth, requireRole("operator"), upload.single("brochure"), async (req, res) => {
+  app.post("/api/products", upload.single("brochure"), async (req, res) => {
     try {
+      if (!isAuthenticated(req) || req.session.user?.role !== "operator") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const productData = { ...req.body };
       
       // Auto-generate unique ID if not provided
@@ -342,18 +323,18 @@ async function createApp() {
         productData.uniqueId = generateUniqueId();
       }
 
-      // Handle file upload (in production, you'd typically upload to cloud storage)
+      // Handle file upload (for serverless, you might want to store in cloud storage)
       if (req.file) {
-        // For production, you'd upload to Supabase Storage, AWS S3, etc.
-        // For now, we'll just store the filename
-        productData.brochureUrl = `/api/files/${productData.uniqueId}${path.extname(req.file.originalname)}`;
+        // In production, you should upload to cloud storage (AWS S3, Cloudinary, etc.)
+        // For now, we'll store the filename reference
+        productData.brochureUrl = `/api/files/${productData.uniqueId}`;
         productData.brochureFilename = req.file.originalname;
       }
 
       // Validate product data
       const validatedData = insertProductSchema.parse({
         ...productData,
-        submittedBy: req.user.id,
+        submittedBy: req.session.user.id,
       });
 
       const product = await storage.createProduct(validatedData);
@@ -368,20 +349,24 @@ async function createApp() {
   });
 
   // Get products by status (for admin)
-  app.get("/api/products", requireAuth, async (req, res) => {
+  app.get("/api/products", async (req, res) => {
     try {
+      if (!isAuthenticated(req)) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
       const { status } = req.query;
       let products;
 
-      if (req.user?.role === "admin") {
+      if (req.session.user?.role === "admin") {
         if (status && typeof status === "string") {
           products = await storage.getProductsByStatus(status);
         } else {
           products = await storage.getAllProducts();
         }
-      } else if (req.user?.role === "operator") {
+      } else if (req.session.user?.role === "operator") {
         // Operators can only see their own products
-        products = await storage.getProductsBySubmitter(req.user.id);
+        products = await storage.getProductsBySubmitter(req.session.user.email);
       } else {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -423,8 +408,12 @@ async function createApp() {
   });
 
   // Update product status (admin only)
-  app.patch("/api/products/:id/status", requireAuth, requireRole("admin"), async (req, res) => {
+  app.patch("/api/products/:id/status", async (req, res) => {
     try {
+      if (!isAuthenticated(req) || req.session.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const { id } = req.params;
       const { status, rejectionReason } = req.body;
 
@@ -439,7 +428,7 @@ async function createApp() {
       const product = await storage.updateProductStatus(
         id,
         status,
-        req.user.id,
+        req.session.user.id,
         rejectionReason
       );
 
@@ -455,8 +444,12 @@ async function createApp() {
   });
 
   // Update product (admin for any product, operator for own pending products)
-  app.patch("/api/products/:id", requireAuth, async (req, res) => {
+  app.patch("/api/products/:id", async (req, res) => {
     try {
+      if (!isAuthenticated(req)) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
       const { id } = req.params;
       const updates = req.body;
 
@@ -467,11 +460,11 @@ async function createApp() {
       }
 
       // Check permissions
-      if (req.user.role === "admin") {
+      if (req.session.user.role === "admin") {
         // Admins can edit any product
-      } else if (req.user.role === "operator") {
+      } else if (req.session.user.role === "operator") {
         // Operators can only edit their own pending or rejected products
-        if (existingProduct.submitted_by !== req.user.id) {
+        if (existingProduct.submittedBy !== req.session.user.email) {
           return res.status(403).json({ message: "You can only edit your own products" });
         }
         if (existingProduct.status !== "pending" && existingProduct.status !== "rejected") {
@@ -495,8 +488,12 @@ async function createApp() {
   });
 
   // Delete product (admin only)
-  app.delete("/api/products/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  app.delete("/api/products/:id", async (req, res) => {
     try {
+      if (!isAuthenticated(req) || req.session.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const { id } = req.params;
       const success = await storage.deleteProduct(id);
 
@@ -512,8 +509,12 @@ async function createApp() {
   });
 
   // Create operator account (admin only)
-  app.post("/api/users", requireAuth, requireRole("admin"), async (req, res) => {
+  app.post("/api/users", async (req, res) => {
     try {
+      if (!isAuthenticated(req) || req.session.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const { username, email, password } = req.body;
 
       if (!username || !email || !password) {
@@ -532,7 +533,9 @@ async function createApp() {
       }
 
       // Hash password
-      const hashedPassword = await hashPassword(password);
+      const salt = randomBytes(16).toString("hex");
+      const buf = await scryptAsync(password, salt, 64);
+      const hashedPassword = `${buf.toString("hex")}.${salt}`;
 
       // Create operator user
       const user = await storage.createUser({
@@ -552,8 +555,12 @@ async function createApp() {
   });
 
   // Get all users (admin only)
-  app.get("/api/users", requireAuth, requireRole("admin"), async (req, res) => {
+  app.get("/api/users", async (req, res) => {
     try {
+      if (!isAuthenticated(req) || req.session.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const users = await storage.getAllUsers();
       
       // Remove passwords from response
@@ -571,6 +578,7 @@ async function createApp() {
       // Get database info (without exposing connection string)
       const dbUrl = process.env.DATABASE_URL || "Not set";
       const isSupabase = dbUrl.includes("supabase.com");
+      const dbHost = dbUrl.split("@")[1]?.split(":")[0] || "Unknown";
       
       // Get product counts by status
       const allProducts = await storage.getAllProducts();
@@ -580,17 +588,17 @@ async function createApp() {
       
       // Get sample products
       const sampleProducts = allProducts.slice(0, 3).map(p => ({
-        uniqueId: p.unique_id,
+        uniqueId: p.uniqueId,
         product: p.product,
         status: p.status,
-        submissionDate: p.submission_date
+        submissionDate: p.submissionDate
       }));
       
       res.json({
         environment: process.env.NODE_ENV || "unknown",
         database: {
           isSupabase,
-          host: isSupabase ? "supabase.com" : "Unknown",
+          host: dbHost,
           connected: true
         },
         productCounts: {
@@ -612,12 +620,15 @@ async function createApp() {
     }
   });
 
-  // Serve uploaded files (Note: In production, you'd serve from cloud storage)
-  app.get("/api/files/:filename", (req, res) => {
-    // In production, you would redirect to or serve from cloud storage
-    res.status(404).json({ message: "File not found" });
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "unknown"
+    });
   });
-  
+
   return app;
 }
 
