@@ -6,15 +6,5 @@ README.md
 replit.md
 .replit*
 *.log
-client/src
-server
-*.ts
-*.tsx
-!dist/**
-vite.config.ts
-tailwind.config.ts
-tsconfig.json
-drizzle.config.ts
-package-lock.json
 uploads/**
 tmp/**
