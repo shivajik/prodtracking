@@ -1,14 +1,12 @@
-// api/index.ts - Production-ready serverless function
+// api/index.js - Production-ready serverless function with embedded schema
 import express from "express";
 import session from "express-session";
 import { Pool } from "pg";
-import { createServer, type Server } from "http";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { insertProductSchema } from "@shared/schema";
 import connectPgSimple from "connect-pg-simple";
 
 // ES modules equivalent of __dirname
@@ -28,8 +26,8 @@ const pool = new Pool({
 const PgSession = connectPgSimple(session);
 
 // Configure middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 
 // Session configuration
 app.use(
@@ -50,34 +48,18 @@ app.use(
   })
 );
 
-// Authentication middleware
-declare global {
-  namespace Express {
-    interface User {
-      id: string;
-      username: string;
-      email: string;
-      role: string;
-    }
-
-    interface Request {
-      user?: User;
-    }
-  }
-}
-
 // Simple authentication middleware
 app.use((req, res, next) => {
-  if (req.session && (req.session as any).user) {
-    req.user = (req.session as any).user;
+  if (req.session && req.session.user) {
+    req.user = req.session.user;
   }
   next();
 });
 
 // Helper function to check authentication
-function requireAuth(roles?: string[]) {
-  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (!req.isAuthenticated || !req.user) {
+function requireAuth(roles) {
+  return (req, res, next) => {
+    if (!req.user) {
       return res.status(401).json({ message: "Authentication required" });
     }
 
@@ -89,8 +71,8 @@ function requireAuth(roles?: string[]) {
   };
 }
 
-// Setup file uploads
-const uploadDir = "/tmp/uploads"; // Use /tmp directory on Vercel
+// Setup file uploads - Use /tmp directory on Vercel
+const uploadDir = "/tmp/uploads";
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -113,17 +95,46 @@ const upload = multer({
   },
 });
 
+// Define Zod schemas for validation (replacing the shared schema)
+const insertProductSchema = z.object({
+  uniqueId: z.string().optional(),
+  company: z.string().min(1, "Company is required"),
+  brand: z.string().min(1, "Brand is required"),
+  product: z.string().min(1, "Product name is required"),
+  description: z.string().min(1, "Description is required"),
+  mrp: z.string().min(1, "MRP is required").or(z.number()),
+  netQty: z.string().min(1, "Net quantity is required"),
+  lotBatch: z.string().min(1, "Lot/Batch number is required"),
+  mfgDate: z.string().min(1, "Manufacturing date is required"),
+  expiryDate: z.string().min(1, "Expiry date is required"),
+  customerCare: z.string().min(1, "Customer care details are required"),
+  email: z.string().email("Valid email is required"),
+  companyAddress: z.string().min(1, "Company address is required"),
+  marketedBy: z.string().min(1, "Marketed by information is required"),
+  brochureUrl: z.string().optional(),
+  brochureFilename: z.string().optional(),
+  submittedBy: z.string().optional(),
+});
+
 // Storage functions for database operations
 const storage = {
   // Product operations
-  createProduct: async (productData: any) => {
+  createProduct: async (productData) => {
     const {
       uniqueId,
-      product,
+      company,
       brand,
-      category,
+      product,
       description,
       mrp,
+      netQty,
+      lotBatch,
+      mfgDate,
+      expiryDate,
+      customerCare,
+      email,
+      companyAddress,
+      marketedBy,
       brochureUrl,
       brochureFilename,
       submittedBy,
@@ -131,16 +142,22 @@ const storage = {
 
     const result = await pool.query(
       `INSERT INTO products 
-       (unique_id, product, brand, category, description, mrp, brochure_url, brochure_filename, submitted_by, status) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending') 
+       (unique_id, company, brand, product, description, mrp, net_qty, lot_batch, 
+        mfg_date, expiry_date, customer_care, email, company_address, marketed_by, 
+        brochure_url, brochure_filename, submitted_by, status) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 'pending') 
        RETURNING *`,
-      [uniqueId, product, brand, category, description, mrp, brochureUrl, brochureFilename, submittedBy]
+      [
+        uniqueId, company, brand, product, description, mrp, netQty, lotBatch,
+        mfgDate, expiryDate, customerCare, email, companyAddress, marketedBy,
+        brochureUrl, brochureFilename, submittedBy
+      ]
     );
 
     return result.rows[0];
   },
 
-  getProductsByStatus: async (status: string) => {
+  getProductsByStatus: async (status) => {
     const result = await pool.query("SELECT * FROM products WHERE status = $1 ORDER BY created_at DESC", [
       status,
     ]);
@@ -148,28 +165,49 @@ const storage = {
   },
 
   getAllProducts: async () => {
-    const result = await pool.query("SELECT * FROM products ORDER BY created_at DESC");
+    const result = await pool.query(`
+      SELECT p.*, u1.email as submitted_by_email, u2.email as approved_by_email 
+      FROM products p
+      LEFT JOIN users u1 ON p.submitted_by = u1.id
+      LEFT JOIN users u2 ON p.approved_by = u2.id
+      ORDER BY p.created_at DESC
+    `);
     return result.rows;
   },
 
-  getProductsBySubmitter: async (email: string) => {
-    const result = await pool.query("SELECT * FROM products WHERE submitted_by = $1 ORDER BY created_at DESC", [
-      email,
-    ]);
+  getProductsBySubmitter: async (userId) => {
+    const result = await pool.query(`
+      SELECT p.*, u.email as submitted_by_email 
+      FROM products p
+      LEFT JOIN users u ON p.submitted_by = u.id
+      WHERE p.submitted_by = $1 
+      ORDER BY p.created_at DESC
+    `, [userId]);
     return result.rows;
   },
 
-  getProductByUniqueId: async (uniqueId: string) => {
-    const result = await pool.query("SELECT * FROM products WHERE unique_id = $1", [uniqueId]);
+  getProductByUniqueId: async (uniqueId) => {
+    const result = await pool.query(`
+      SELECT p.*, u.email as submitted_by_email 
+      FROM products p
+      LEFT JOIN users u ON p.submitted_by = u.id
+      WHERE p.unique_id = $1
+    `, [uniqueId]);
     return result.rows[0] || null;
   },
 
-  getProductById: async (id: string) => {
-    const result = await pool.query("SELECT * FROM products WHERE id = $1", [id]);
+  getProductById: async (id) => {
+    const result = await pool.query(`
+      SELECT p.*, u1.email as submitted_by_email, u2.email as approved_by_email 
+      FROM products p
+      LEFT JOIN users u1 ON p.submitted_by = u1.id
+      LEFT JOIN users u2 ON p.approved_by = u2.id
+      WHERE p.id = $1
+    `, [id]);
     return result.rows[0] || null;
   },
 
-  updateProductStatus: async (id: string, status: string, approvedBy: string, rejectionReason?: string) => {
+  updateProductStatus: async (id, status, approvedBy, rejectionReason) => {
     const result = await pool.query(
       `UPDATE products 
        SET status = $1, approved_by = $2, rejection_reason = $3, approved_at = CURRENT_TIMESTAMP 
@@ -179,7 +217,7 @@ const storage = {
     return result.rows[0] || null;
   },
 
-  updateProduct: async (id: string, updates: any) => {
+  updateProduct: async (id, updates) => {
     const fields = Object.keys(updates);
     const values = Object.values(updates);
     const setClause = fields.map((field, index) => `${field} = $${index + 1}`).join(", ");
@@ -191,23 +229,28 @@ const storage = {
     return result.rows[0] || null;
   },
 
-  deleteProduct: async (id: string) => {
+  deleteProduct: async (id) => {
     const result = await pool.query("DELETE FROM products WHERE id = $1 RETURNING id", [id]);
     return result.rowCount > 0;
   },
 
   // User operations
-  getUserByUsername: async (username: string) => {
+  getUserByUsername: async (username) => {
     const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
     return result.rows[0] || null;
   },
 
-  getUserByEmail: async (email: string) => {
+  getUserByEmail: async (email) => {
     const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
     return result.rows[0] || null;
   },
 
-  createUser: async (userData: any) => {
+  getUserById: async (id) => {
+    const result = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+    return result.rows[0] || null;
+  },
+
+  createUser: async (userData) => {
     const { username, email, password, role } = userData;
     const result = await pool.query(
       "INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role",
@@ -223,10 +266,11 @@ const storage = {
 };
 
 // Generate unique ID for products
-function generateUniqueId(): string {
+function generateUniqueId() {
   const year = new Date().getFullYear();
   const timestamp = Date.now().toString().slice(-6);
-  return `GGS-${year}-${timestamp}`;
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `GGS-${year}-${timestamp}-${random}`;
 }
 
 // Authentication routes
@@ -244,13 +288,14 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Verify password (using simple comparison for demo - use bcrypt in production)
+    // In a real application, you should use bcrypt to compare hashed passwords
+    // For now, we'll do a simple comparison (not secure for production)
     if (user.password !== password) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // Store user in session
-    (req.session as any).user = {
+    (req.session).user = {
       id: user.id,
       username: user.username,
       email: user.email,
@@ -315,7 +360,7 @@ app.post("/api/products", upload.single("brochure"), async (req, res) => {
     // Validate product data
     const validatedData = insertProductSchema.parse({
       ...productData,
-      submittedBy: req.user.email,
+      submittedBy: req.user.id,
     });
 
     const product = await storage.createProduct(validatedData);
@@ -347,7 +392,7 @@ app.get("/api/products", async (req, res) => {
       }
     } else if (req.user.role === "operator") {
       // Operators can only see their own products
-      products = await storage.getProductsBySubmitter(req.user.email);
+      products = await storage.getProductsBySubmitter(req.user.id);
     } else {
       return res.status(403).json({ message: "Access denied" });
     }
@@ -374,13 +419,8 @@ app.get("/api/track/:uniqueId", async (req, res) => {
     }
 
     // Remove sensitive information for public view
-    const publicProduct = {
-      ...product,
-      submittedBy: undefined,
-      approvedBy: undefined,
-      rejectionReason: undefined,
-    };
-
+    const { submitted_by, approved_by, rejection_reason, ...publicProduct } = product;
+    
     res.json(publicProduct);
   } catch (error) {
     console.error("Get public product error:", error);
@@ -440,7 +480,7 @@ app.patch("/api/products/:id", async (req, res) => {
       // Admins can edit any product
     } else if (req.user.role === "operator") {
       // Operators can only edit their own pending or rejected products
-      if (existingProduct.submitted_by !== req.user.email) {
+      if (existingProduct.submitted_by !== req.user.id) {
         return res.status(403).json({ message: "You can only edit your own products" });
       }
       if (existingProduct.status !== "pending" && existingProduct.status !== "rejected") {
@@ -615,7 +655,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 // Export the serverless function
-export default async function handler(req: any, res: any) {
+export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
