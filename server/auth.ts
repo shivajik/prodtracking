@@ -29,16 +29,25 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  // Generate a fallback session secret for development/testing
+  const sessionSecret = process.env.SESSION_SECRET || 'dev-session-secret-change-in-production';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isVercel = process.env.VERCEL === '1';
+  
+  console.log(`🔐 Session setup: ${isProduction ? 'production' : 'development'} mode`);
+  console.log(`🔧 Vercel deployment: ${isVercel ? 'yes' : 'no'}`);
+  console.log(`🗄️ Session secret: ${sessionSecret.substring(0, 10)}...`);
+
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET!,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      secure: false, // Set to true in production with HTTPS
+      secure: isProduction || isVercel, // HTTPS in production/Vercel
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
+      sameSite: isProduction ? 'none' : 'lax' // 'none' for cross-origin in production
     }
   };
 
