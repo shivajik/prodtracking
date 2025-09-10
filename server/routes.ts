@@ -331,7 +331,7 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log("🔍 Debug auth endpoint called");
       
-      const debugInfo = {
+      const debugInfo: any = {
         isAuthenticated: req.isAuthenticated(),
         user: req.user ? {
           id: req.user.id,
@@ -354,7 +354,7 @@ export function registerRoutes(app: Express): Server {
       res.json(debugInfo);
     } catch (error) {
       console.error("❌ Debug auth error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
 
