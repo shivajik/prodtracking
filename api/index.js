@@ -2,6 +2,8 @@
 import express from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { sql } from "drizzle-orm";
@@ -9,7 +11,7 @@ import { pgTable, text, varchar, decimal, timestamp, boolean, uuid } from "drizz
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import multer from "multer";
-import { createHash, scrypt, randomBytes } from "crypto";
+import { createHash, scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
 const scryptAsync = promisify(scrypt);
@@ -212,21 +214,12 @@ const storage = {
   }
 };
 
-// Password verification function
-async function verifyPassword(password, hashedPassword) {
-  try {
-    const [hash, salt] = hashedPassword.split('.');
-    const buf = await scryptAsync(password, salt, 64);
-    return buf.toString('hex') === hash;
-  } catch (error) {
-    console.error('Password verification error:', error);
-    return false;
-  }
-}
-
-// Authentication middleware
-function isAuthenticated(req) {
-  return req.session && req.session.user;
+// Password verification function - matches localhost logic
+async function comparePasswords(supplied, stored) {
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64));
+  return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
 // Generate unique ID for products
@@ -281,61 +274,49 @@ async function createApp() {
     }
   }));
 
-  // Authentication routes
-  app.post('/api/login', async (req, res) => {
-    try {
-      const { username, password } = req.body;
+  // Initialize Passport - CRITICAL for session persistence
+  app.use(passport.initialize());
+  app.use(passport.session());
 
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
+  // Passport configuration - matches localhost logic
+  passport.use(
+    new LocalStrategy(async (username, password, done) => {
       const user = await storage.getUserByUsername(username);
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
+      if (!user || !(await comparePasswords(password, user.password))) {
+        return done(null, false);
+      } else {
+        return done(null, user);
       }
+    }),
+  );
 
-      const isValidPassword = await verifyPassword(password, user.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
+  passport.serializeUser((user, done) => done(null, user.id));
+  passport.deserializeUser(async (id, done) => {
+    const user = await storage.getUserById(id);
+    done(null, user);
+  });
 
-      req.session.user = {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-      };
-
-      const { password: _, ...userResponse } = user;
-      res.json(userResponse);
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
+  // Authentication routes - using Passport like localhost
+  app.post('/api/login', passport.authenticate("local"), (req, res) => {
+    res.status(200).json(req.user);
   });
 
   app.get('/api/user', (req, res) => {
-    if (isAuthenticated(req)) {
-      res.json(req.session.user);
-    } else {
-      res.status(401).json({ message: 'Not authenticated' });
-    }
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    res.json(req.user);
   });
 
-  app.post('/api/logout', (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: 'Logout failed' });
-      }
-      res.json({ message: 'Logged out successfully' });
+  app.post('/api/logout', (req, res, next) => {
+    req.logout((err) => {
+      if (err) return next(err);
+      res.sendStatus(200);
     });
   });
 
   // Product routes
   app.post("/api/products", upload.single("brochure"), async (req, res) => {
     try {
-      if (!isAuthenticated(req) || req.session.user?.role !== "operator") {
+      if (!req.isAuthenticated() || req.user?.role !== "operator") {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -357,7 +338,7 @@ async function createApp() {
       // Validate product data
       const validatedData = insertProductSchema.parse({
         ...productData,
-        submittedBy: req.session.user.id,
+        submittedBy: req.user.id,
       });
 
       const product = await storage.createProduct(validatedData);
@@ -374,22 +355,22 @@ async function createApp() {
   // Get products by status (for admin)
   app.get("/api/products", async (req, res) => {
     try {
-      if (!isAuthenticated(req)) {
+      if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
       const { status } = req.query;
       let products;
 
-      if (req.session.user?.role === "admin") {
+      if (req.user?.role === "admin") {
         if (status && typeof status === "string") {
           products = await storage.getProductsByStatus(status);
         } else {
           products = await storage.getAllProducts();
         }
-      } else if (req.session.user?.role === "operator") {
+      } else if (req.user?.role === "operator") {
         // Operators can only see their own products
-        products = await storage.getProductsBySubmitter(req.session.user.email);
+        products = await storage.getProductsBySubmitter(req.user.email);
       } else {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -433,7 +414,7 @@ async function createApp() {
   // Update product status (admin only)
   app.patch("/api/products/:id/status", async (req, res) => {
     try {
-      if (!isAuthenticated(req) || req.session.user?.role !== "admin") {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -451,7 +432,7 @@ async function createApp() {
       const product = await storage.updateProductStatus(
         id,
         status,
-        req.session.user.id,
+        req.user.id,
         rejectionReason
       );
 
@@ -469,7 +450,7 @@ async function createApp() {
   // Update product (admin for any product, operator for own pending products)
   app.patch("/api/products/:id", async (req, res) => {
     try {
-      if (!isAuthenticated(req)) {
+      if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
@@ -483,11 +464,11 @@ async function createApp() {
       }
 
       // Check permissions
-      if (req.session.user.role === "admin") {
+      if (req.user.role === "admin") {
         // Admins can edit any product
-      } else if (req.session.user.role === "operator") {
+      } else if (req.user.role === "operator") {
         // Operators can only edit their own pending or rejected products
-        if (existingProduct.submittedBy !== req.session.user.email) {
+        if (existingProduct.submittedBy !== req.user.email) {
           return res.status(403).json({ message: "You can only edit your own products" });
         }
         if (existingProduct.status !== "pending" && existingProduct.status !== "rejected") {
@@ -513,7 +494,7 @@ async function createApp() {
   // Delete product (admin only)
   app.delete("/api/products/:id", async (req, res) => {
     try {
-      if (!isAuthenticated(req) || req.session.user?.role !== "admin") {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -534,7 +515,7 @@ async function createApp() {
   // Create operator account (admin only)
   app.post("/api/users", async (req, res) => {
     try {
-      if (!isAuthenticated(req) || req.session.user?.role !== "admin") {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -580,7 +561,7 @@ async function createApp() {
   // Get all users (admin only)
   app.get("/api/users", async (req, res) => {
     try {
-      if (!isAuthenticated(req) || req.session.user?.role !== "admin") {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
         return res.status(403).json({ message: "Access denied" });
       }
 
