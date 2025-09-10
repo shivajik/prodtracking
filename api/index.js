@@ -1,6 +1,7 @@
 // Vercel serverless function for Green Gold Seeds API - Production Ready
 import express from "express";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { sql } from "drizzle-orm";
@@ -94,6 +95,26 @@ function getDatabase() {
     db = drizzle(client);
   }
   return db;
+}
+
+// Session store setup
+const PostgresSessionStore = connectPg(session);
+let sessionStore;
+
+function getSessionStore() {
+  if (!sessionStore) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error("DATABASE_URL environment variable is not set");
+    }
+    
+    sessionStore = new PostgresSessionStore({
+      conString: connectionString,
+      createTableIfMissing: true,
+      tableName: 'session'
+    });
+  }
+  return sessionStore;
 }
 
 // Storage functions
@@ -251,10 +272,12 @@ async function createApp() {
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
+    store: getSessionStore(),
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'
     }
   }));
 
