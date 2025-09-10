@@ -9,10 +9,28 @@ async function createApp() {
   if (app) return app;
   
   try {
-    // Import the built server module
-    const { default: builtApp } = await import('../dist/index.js');
+    // Try multiple import paths for different environments
+    let builtApp;
+    const possiblePaths = [
+      '../dist/index.js',
+      './dist/index.js',
+      '/var/task/dist/index.js'
+    ];
     
-    if (builtApp && typeof builtApp === 'function') {
+    for (const path of possiblePaths) {
+      try {
+        const imported = await import(path);
+        if (imported.default && typeof imported.default === 'function') {
+          builtApp = imported.default;
+          console.log(`Successfully imported app from: ${path}`);
+          break;
+        }
+      } catch (pathError) {
+        console.log(`Failed to import from ${path}:`, pathError.message);
+      }
+    }
+    
+    if (builtApp) {
       app = builtApp;
       return app;
     }
