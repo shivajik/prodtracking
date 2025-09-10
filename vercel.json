@@ -4,16 +4,14 @@
     {
       "source": "/api/(.*)",
       "destination": "/api"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/assets/(.*)",
-      "dest": "/dist/public/assets/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/dist/public/index.html"
+      "source": "/assets/(.*)",
+      "destination": "/dist/public/assets/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/dist/public/index.html"
     }
   ],
   "env": {
