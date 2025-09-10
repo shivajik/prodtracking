@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
 const supabase = createClient(
-  process.env.SUPABASE_URL,
+  process.env.DATABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
@@ -569,7 +569,7 @@ async function createApp() {
   app.get("/api/debug", async (req, res) => {
     try {
       // Get database info (without exposing connection string)
-      const dbUrl = process.env.SUPABASE_URL || "Not set";
+      const dbUrl = process.env.DATABASE_URL || "Not set";
       const isSupabase = dbUrl.includes("supabase.com");
       
       // Get product counts by status
