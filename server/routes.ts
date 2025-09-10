@@ -314,6 +314,54 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Debug endpoint to check database connection and data
+  app.get("/api/debug", async (req, res) => {
+    try {
+      // Get database info (without exposing connection string)
+      const dbUrl = process.env.DATABASE_URL || "Not set";
+      const isSupabase = dbUrl.includes("supabase.com");
+      const dbHost = dbUrl.split("@")[1]?.split(":")[0] || "Unknown";
+      
+      // Get product counts by status
+      const allProducts = await storage.getAllProducts();
+      const pendingCount = allProducts.filter(p => p.status === "pending").length;
+      const approvedCount = allProducts.filter(p => p.status === "approved").length;
+      const rejectedCount = allProducts.filter(p => p.status === "rejected").length;
+      
+      // Get sample products
+      const sampleProducts = allProducts.slice(0, 3).map(p => ({
+        uniqueId: p.uniqueId,
+        product: p.product,
+        status: p.status,
+        submissionDate: p.submissionDate
+      }));
+      
+      res.json({
+        environment: process.env.NODE_ENV || "unknown",
+        database: {
+          isSupabase,
+          host: dbHost,
+          connected: true
+        },
+        productCounts: {
+          total: allProducts.length,
+          pending: pendingCount,
+          approved: approvedCount,
+          rejected: rejectedCount
+        },
+        sampleProducts,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Debug endpoint error:", error);
+      res.status(500).json({ 
+        error: "Debug failed", 
+        message: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Serve uploaded files
   app.get("/api/files/:filename", (req, res) => {
     const { filename } = req.params;
