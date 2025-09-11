@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sprout, Phone, Mail, Download, Calendar, Package } from "lucide-react";
+import { Sprout, Phone, Mail, Download, Calendar, Package, QrCode } from "lucide-react";
 import { Product } from "@shared/schema";
 
 export default function PublicProduct() {
   const { uniqueId } = useParams();
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
   const { data: product, isLoading, error } = useQuery<Product>({
     queryKey: ["/api/track", uniqueId],
@@ -18,9 +20,43 @@ export default function PublicProduct() {
     enabled: !!uniqueId,
   });
 
+  // Generate QR code when product loads
+  useEffect(() => {
+    const generateQRCode = async () => {
+      if (product?.uniqueId) {
+        try {
+          const QRCode = await import('qrcode');
+          const trackingUrl = `${window.location.origin}/track/${product.uniqueId}`;
+          const qrDataUrl = await QRCode.toDataURL(trackingUrl, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          setQrCodeDataUrl(qrDataUrl);
+        } catch (error) {
+          console.error('Error generating QR code:', error);
+        }
+      }
+    };
+
+    generateQRCode();
+  }, [product]);
+
   const handleDownloadBrochure = () => {
     if (product?.brochureUrl) {
       window.open(product.brochureUrl, "_blank");
+    }
+  };
+
+  const handleDownloadQRCode = () => {
+    if (qrCodeDataUrl) {
+      const link = document.createElement('a');
+      link.href = qrCodeDataUrl;
+      link.download = `qr-code-${product?.uniqueId}.png`;
+      link.click();
     }
   };
 
@@ -184,6 +220,52 @@ export default function PublicProduct() {
                   </div>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* QR Code Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Product QR Code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between bg-muted rounded-lg p-4">
+              <div className="flex items-center space-x-4">
+                {qrCodeDataUrl ? (
+                  <div className="h-20 w-20 bg-white rounded-lg p-1 flex items-center justify-center">
+                    <img 
+                      src={qrCodeDataUrl} 
+                      alt="Product QR Code"
+                      className="w-full h-full object-contain"
+                      data-testid="img-qr-code"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-20 w-20 bg-muted-foreground/20 rounded-lg flex items-center justify-center">
+                    <QrCode className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <h4 className="font-semibold text-foreground">Share this Product</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Scan this QR code to access this product's information
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">
+                    {window.location.origin}/track/{product.uniqueId}
+                  </p>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleDownloadQRCode} 
+                disabled={!qrCodeDataUrl}
+                data-testid="button-download-qr"
+                variant="outline"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download QR
+              </Button>
             </div>
           </CardContent>
         </Card>

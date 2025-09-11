@@ -289,8 +289,27 @@ export default function AdminDashboard() {
     window.open(`/track/${uniqueId}`, "_blank");
   };
 
-  // CSV Export functionality
-  const exportToCSV = (products: Product[]) => {
+  // Generate QR code data URL for a unique ID
+  const generateQRCode = async (uniqueId: string): Promise<string> => {
+    try {
+      const QRCode = await import('qrcode');
+      const trackingUrl = `${window.location.origin}/track/${uniqueId}`;
+      return await QRCode.toDataURL(trackingUrl, {
+        width: 150,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      return '';
+    }
+  };
+
+  // CSV Export functionality with QR codes
+  const exportToCSV = async (products: Product[]) => {
     if (products.length === 0) {
       toast({
         title: "No Data",
@@ -300,76 +319,99 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Define CSV headers
-    const headers = [
-      "Unique ID",
-      "Product Name", 
-      "Brand",
-      "Company",
-      "Description",
-      "MRP",
-      "Net Quantity",
-      "Lot/Batch",
-      "Manufacturing Date",
-      "Expiry Date",
-      "Customer Care",
-      "Email",
-      "Company Address",
-      "Marketed By",
-      "Status",
-      "Submission Date",
-      "Approval Date",
-      "Rejection Reason"
-    ];
-
-    // Convert products to CSV rows
-    const csvRows = products.map(product => [
-      product.uniqueId || "",
-      product.product || "",
-      product.brand || "",
-      product.company || "",
-      product.description || "",
-      product.mrp || "",
-      product.netQty || "",
-      product.lotBatch || "",
-      product.mfgDate || "",
-      product.expiryDate || "",
-      product.customerCare || "",
-      product.email || "",
-      product.companyAddress || "",
-      product.marketedBy || "",
-      product.status || "",
-      product.submissionDate ? new Date(product.submissionDate).toLocaleDateString() : "",
-      product.approvalDate ? new Date(product.approvalDate).toLocaleDateString() : "",
-      product.rejectionReason || ""
-    ]);
-
-    // Create CSV content
-    const csvContent = [
-      headers.join(","),
-      ...csvRows.map(row => 
-        row.map(field => 
-          // Escape commas and quotes in CSV fields
-          `"${String(field).replace(/"/g, '""')}"`
-        ).join(",")
-      )
-    ].join("\n");
-
-    // Create and download file
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `green-gold-seeds-products-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
     toast({
-      title: "Export Successful",
-      description: `Exported ${products.length} products to CSV file.`,
+      title: "Generating Export",
+      description: "Creating QR codes and preparing CSV file...",
     });
+
+    try {
+      // Define CSV headers with proper spacing
+      const headers = [
+        "Unique ID".padEnd(20),
+        "Product Name".padEnd(30), 
+        "Brand".padEnd(20),
+        "Company".padEnd(30),
+        "Description".padEnd(50),
+        "MRP (₹)".padEnd(15),
+        "Net Quantity".padEnd(15),
+        "Lot/Batch".padEnd(15),
+        "Manufacturing Date".padEnd(18),
+        "Expiry Date".padEnd(15),
+        "Customer Care".padEnd(25),
+        "Email".padEnd(30),
+        "Company Address".padEnd(50),
+        "Marketed By".padEnd(30),
+        "Status".padEnd(12),
+        "Submission Date".padEnd(15),
+        "Approval Date".padEnd(15),
+        "Rejection Reason".padEnd(30),
+        "QR Code (Base64)".padEnd(100),
+        "Tracking URL".padEnd(50)
+      ];
+
+      // Convert products to CSV rows with QR codes
+      const csvRows = await Promise.all(products.map(async (product) => {
+        const qrCodeDataUrl = await generateQRCode(product.uniqueId || '');
+        const trackingUrl = `${window.location.origin}/track/${product.uniqueId}`;
+        
+        return [
+          (product.uniqueId || "").padEnd(20),
+          (product.product || "").padEnd(30),
+          (product.brand || "").padEnd(20),
+          (product.company || "").padEnd(30),
+          (product.description || "").padEnd(50),
+          (product.mrp || "").padEnd(15),
+          (product.netQty || "").padEnd(15),
+          (product.lotBatch || "").padEnd(15),
+          (product.mfgDate || "").padEnd(18),
+          (product.expiryDate || "").padEnd(15),
+          (product.customerCare || "").padEnd(25),
+          (product.email || "").padEnd(30),
+          (product.companyAddress || "").padEnd(50),
+          (product.marketedBy || "").padEnd(30),
+          (product.status || "").padEnd(12),
+          (product.submissionDate ? new Date(product.submissionDate).toLocaleDateString() : "").padEnd(15),
+          (product.approvalDate ? new Date(product.approvalDate).toLocaleDateString() : "").padEnd(15),
+          (product.rejectionReason || "").padEnd(30),
+          qrCodeDataUrl.padEnd(100),
+          trackingUrl.padEnd(50)
+        ];
+      }));
+
+      // Create CSV content with proper spacing
+      const csvContent = [
+        headers.join(","),
+        ...csvRows.map(row => 
+          row.map(field => 
+            // Escape commas and quotes in CSV fields
+            `"${String(field).replace(/"/g, '""')}"`
+          ).join(",")
+        )
+      ].join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `green-gold-seeds-products-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${products.length} products with QR codes to CSV file.`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate CSV file. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreateUser = (data: CreateUserData) => {
