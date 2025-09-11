@@ -40,6 +40,10 @@ export const products = pgTable("products", {
   to: text("to"),
   marketingCode: text("marketing_code"),
   unitOfMeasureCode: text("unit_of_measure_code"),
+  marketCode: text("market_code"),
+  prodCode: text("prod_code"),
+  lotNo: text("lot_no"),
+  gb: decimal("gb", { precision: 10, scale: 2 }),
   status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
   submissionDate: timestamp("submission_date").defaultNow(),
   approvalDate: timestamp("approval_date"),

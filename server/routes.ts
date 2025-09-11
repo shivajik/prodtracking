@@ -356,6 +356,10 @@ export function registerRoutes(app: Express): Server {
             to: row.to || row.To || row.TO || "",
             marketingCode: row.marketingCode || row['Marketing Code'] || row.code || row.Code || "",
             unitOfMeasureCode: row.unitOfMeasureCode || row['Unit of Measure Code'] || row.unit || row.Unit || "",
+            marketCode: row.marketCode || row['Market Code'] || row.market || row.Market || "",
+            prodCode: row.prodCode || row['Prod. Code'] || row['Prod Code'] || row.productCode || row['Product Code'] || "",
+            lotNo: row.lotNo || row['Lot No'] || row.lot || row.Lot || "",
+            gb: row.gb || row.GB || row.Gb || "",
             // Always generate unique ID with our own logic, ignore any provided value
             uniqueId: generateUniqueId(),
             submittedBy: req.user.id,
