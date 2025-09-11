@@ -610,11 +610,11 @@ async function createApp() {
     }
   });
 
-  // Import products from CSV/Excel file (admin only)
+  // Import products from CSV/Excel file (admin and operator)
   app.post("/api/products/import", importUpload.single('file'), async (req, res) => {
     try {
-      if (!req.isAuthenticated() || req.user?.role !== "admin") {
-        return res.status(403).json({ message: "Access denied. Admin role required for bulk import." });
+      if (!req.isAuthenticated() || (req.user?.role !== "admin" && req.user?.role !== "operator")) {
+        return res.status(403).json({ message: "Access denied. Admin or operator role required for bulk import." });
       }
 
       if (!req.file) {
