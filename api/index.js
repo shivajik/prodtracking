@@ -18,6 +18,25 @@ import { Readable } from "stream";
 import * as XLSX from "xlsx";
 import path from "path";
 
+// Helper function to convert Excel date number to string
+function excelDateToString(value) {
+  if (typeof value === 'number' && value > 25567) { // Excel epoch starts at 1900-01-01, Unix epoch equivalent
+    const excelEpoch = new Date(1899, 11, 30); // Excel's epoch (December 30, 1899)
+    const jsDate = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
+    return jsDate.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+  }
+  return value ? String(value) : "";
+}
+
+// Helper function to handle decimal values (convert empty strings to null)
+function parseDecimal(value) {
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? null : parsed.toString();
+}
+
 const scryptAsync = promisify(scrypt);
 
 // Database Schema
@@ -666,20 +685,20 @@ async function createApp() {
             brand: row.brand || row.Brand || row.BRAND || "",
             product: row.product || row.Product || row.PRODUCT || row['Product Name'] || row['Crop Name'] || "",
             description: row.description || row.Description || row.DESCRIPTION || "",
-            mrp: row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price || "",
+            mrp: parseDecimal(row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price),
             netQty: row.netQty || row['Net Qty'] || row['Net Quantity'] || row.quantity || row.Quantity || "",
             lotBatch: row.lotBatch || row['Lot/Batch'] || row['Lot Batch'] || row.batch || row.Batch || row['New Lot No'] || "",
-            mfgDate: row.mfgDate || row['Mfg Date'] || row['Manufacturing Date'] || row['Date of Packing'] || row.mfgDate || "",
-            expiryDate: row.expiryDate || row['Expiry Date'] || row['Valid Upto'] || row.expiryDate || "",
+            mfgDate: excelDateToString(row.mfgDate || row['Mfg Date'] || row['Manufacturing Date'] || row['Date of Packing'] || row.mfgDate),
+            expiryDate: excelDateToString(row.expiryDate || row['Expiry Date'] || row['Valid Upto'] || row.expiryDate),
             customerCare: row.customerCare || row['Customer Care'] || row.support || row.Support || "",
             email: row.email || row.Email || row.EMAIL || "",
             companyAddress: row.companyAddress || row['Company Address'] || row.address || row.Address || "",
             marketedBy: row.marketedBy || row['Marketed By'] || row.marketer || row.Marketer || "",
             packSize: row.packSize || row['Pack Size'] || row.size || row.Size || "",
-            dateOfTest: row.dateOfTest || row['Date of Test'] || row.testDate || row['Test Date'] || "",
-            unitSalePrice: row.unitSalePrice || row['Unit Sale Price'] || row.unitPrice || row['Unit Price'] || "",
-            noOfPkts: row.noOfPkts || row['No of Pkts'] || row.packets || row.Packets || "",
-            totalPkts: row.totalPkts || row['Total Pkts'] || row.totalPackets || row['Total Packets'] || "",
+            dateOfTest: excelDateToString(row.dateOfTest || row['Date Of Test'] || row.testDate || row['Test Date']),
+            unitSalePrice: parseDecimal(row.unitSalePrice || row['Unit Sale Price'] || row.unitPrice || row['Unit Price']),
+            noOfPkts: parseDecimal(row.noOfPkts || row['No Of Pkts'] || row['No of Pkts'] || row.packets || row.Packets),
+            totalPkts: parseDecimal(row.totalPkts || row['Total Pkts'] || row.totalPackets || row['Total Packets']),
             from: row.from || row.From || row.FROM || "",
             to: row.to || row.To || row.TO || "",
             marketingCode: row.marketingCode || row['Marketing Code'] || row.code || row.Code || "",
@@ -687,7 +706,7 @@ async function createApp() {
             marketCode: row.marketCode || row['Market Code'] || row.market || row.Market || "",
             prodCode: row.prodCode || row['Prod. Code'] || row['Prod Code'] || row.productCode || row['Product Code'] || "",
             lotNo: row.lotNo || row['Lot No'] || row.lot || row.Lot || "",
-            gb: row.gb || row.GB || row.Gb || "",
+            gb: parseDecimal(row.gb || row.GB || row.Gb),
             // Always generate unique ID with our own logic, ignore any provided value
             uniqueId: generateUniqueId(),
             submittedBy: req.user.id,
