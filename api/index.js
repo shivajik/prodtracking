@@ -655,7 +655,7 @@ async function createApp() {
       let imported = 0;
       let skipped = 0;
       const errors = [];
-
+ 
       for (let i = 0; i < products.length; i++) {
         try {
           const row = products[i];
