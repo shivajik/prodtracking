@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Clock, CheckCircle, XCircle, List, Eye, Check, X, Users, Plus, BarChart3, Home, Download } from "lucide-react";
+import { Clock, CheckCircle, XCircle, List, Eye, Check, X, Users, Plus, BarChart3, Home, Download, Search, Upload } from "lucide-react";
 import { Product, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +39,9 @@ export default function AdminDashboard() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   const createUserForm = useForm<CreateUserData>({
     resolver: zodResolver(createUserSchema),
@@ -55,9 +58,13 @@ export default function AdminDashboard() {
   }
 
   const { data: pendingProducts = [], isLoading: pendingLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products", "pending"],
+    queryKey: ["/api/products", "pending", searchTerm],
     queryFn: async () => {
-      const res = await fetch("/api/products?status=pending", { credentials: "include" });
+      const params = new URLSearchParams({ status: "pending" });
+      if (searchTerm.trim()) {
+        params.append("search", searchTerm.trim());
+      }
+      const res = await fetch(`/api/products?${params}`, { credentials: "include" });
       if (!res.ok) return [];
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -65,9 +72,13 @@ export default function AdminDashboard() {
   });
 
   const { data: approvedProducts = [], isLoading: approvedLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products", "approved"],
+    queryKey: ["/api/products", "approved", searchTerm],
     queryFn: async () => {
-      const res = await fetch("/api/products?status=approved", { credentials: "include" });
+      const params = new URLSearchParams({ status: "approved" });
+      if (searchTerm.trim()) {
+        params.append("search", searchTerm.trim());
+      }
+      const res = await fetch(`/api/products?${params}`, { credentials: "include" });
       if (!res.ok) return [];
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -75,9 +86,13 @@ export default function AdminDashboard() {
   });
 
   const { data: rejectedProducts = [], isLoading: rejectedLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products", "rejected"],
+    queryKey: ["/api/products", "rejected", searchTerm],
     queryFn: async () => {
-      const res = await fetch("/api/products?status=rejected", { credentials: "include" });
+      const params = new URLSearchParams({ status: "rejected" });
+      if (searchTerm.trim()) {
+        params.append("search", searchTerm.trim());
+      }
+      const res = await fetch(`/api/products?${params}`, { credentials: "include" });
       if (!res.ok) return [];
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -85,9 +100,14 @@ export default function AdminDashboard() {
   });
 
   const { data: allProducts = [], isLoading: allLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products", searchTerm],
     queryFn: async () => {
-      const res = await fetch("/api/products", { credentials: "include" });
+      const params = new URLSearchParams();
+      if (searchTerm.trim()) {
+        params.append("search", searchTerm.trim());
+      }
+      const url = params.toString() ? `/api/products?${params}` : "/api/products";
+      const res = await fetch(url, { credentials: "include" });
       if (!res.ok) return [];
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -306,6 +326,55 @@ export default function AdminDashboard() {
       console.error('Error generating QR code:', error);
       return '';
     }
+  };
+
+  const importProductsMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/products/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to import products');
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Import successful",
+        description: `Successfully imported ${data.imported} products. ${data.skipped || 0} rows were skipped.`,
+      });
+      setShowImportDialog(false);
+      setImportFile(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Import failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleImport = () => {
+    if (!importFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV or Excel file to import.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    importProductsMutation.mutate(importFile);
   };
 
   // Excel Export functionality with QR codes and proper formatting
@@ -594,16 +663,41 @@ export default function AdminDashboard() {
                     </Button>
                   )}
                   {tab === "all" && (
-                    <Button 
-                      onClick={() => exportToExcel(allProducts)}
-                      data-testid="button-export-excel"
-                      variant="outline"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export All
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => setShowImportDialog(true)}
+                        data-testid="button-import"
+                        variant="outline"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                      </Button>
+                      <Button 
+                        onClick={() => exportToExcel(allProducts)}
+                        data-testid="button-export-excel"
+                        variant="outline"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export All
+                      </Button>
+                    </div>
                   )}
                 </div>
+
+                {/* Search Input for Products */}
+                {tab !== "users" && (
+                  <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search by product, batch, company, brand..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search"
+                    />
+                  </div>
+                )}
 
                 {tab === "users" ? (
                   usersLoading ? (
@@ -809,6 +903,58 @@ export default function AdminDashboard() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Products Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent data-testid="dialog-import">
+          <DialogHeader>
+            <DialogTitle>Import Products</DialogTitle>
+            <DialogDescription>
+              Upload a CSV or Excel file to bulk import products. The file should contain columns for company, brand, product, description, MRP, net quantity, lot/batch, manufacturing date, expiry date, customer care, email, company address, and marketed by.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="import-file">Select File</Label>
+              <Input
+                id="import-file"
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                className="mt-1"
+                data-testid="input-import-file"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Supported formats: CSV, Excel (.xlsx, .xls)
+              </p>
+            </div>
+            {importFile && (
+              <div className="text-sm">
+                <strong>Selected file:</strong> {importFile.name}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowImportDialog(false);
+                setImportFile(null);
+              }}
+              data-testid="button-cancel-import"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleImport}
+              disabled={!importFile || importProductsMutation.isPending}
+              data-testid="button-confirm-import"
+            >
+              {importProductsMutation.isPending ? "Importing..." : "Import Products"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -1,6 +1,6 @@
 import { users, products, type User, type InsertUser, type Product, type InsertProduct } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, or, ilike } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -20,6 +20,8 @@ export interface IStorage {
   getProductsByStatus(status: string): Promise<Product[]>;
   getAllProducts(): Promise<Product[]>;
   getProductsBySubmitter(submitterId: string): Promise<Product[]>;
+  searchProducts(searchTerm: string, status?: string): Promise<Product[]>;
+  searchProductsBySubmitter(submitterId: string, searchTerm: string): Promise<Product[]>;
   updateProductStatus(id: string, status: string, approvedBy?: string, rejectionReason?: string): Promise<Product | undefined>;
   updateProduct(id: string, updates: Partial<Product>): Promise<Product | undefined>;
   deleteProduct(id: string): Promise<boolean>;
@@ -111,6 +113,64 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(products)
       .where(eq(products.submittedBy, submitterId))
+      .orderBy(desc(products.submissionDate));
+  }
+
+  async searchProducts(searchTerm: string, status?: string): Promise<Product[]> {
+    const searchPattern = `%${searchTerm}%`;
+    
+    const searchConditions = or(
+      ilike(products.uniqueId, searchPattern),
+      ilike(products.company, searchPattern),
+      ilike(products.brand, searchPattern),
+      ilike(products.product, searchPattern),
+      ilike(products.description, searchPattern),
+      ilike(products.lotBatch, searchPattern),
+      ilike(products.mfgDate, searchPattern),
+      ilike(products.expiryDate, searchPattern),
+      ilike(products.customerCare, searchPattern),
+      ilike(products.email, searchPattern),
+      ilike(products.marketedBy, searchPattern)
+    );
+
+    let whereCondition;
+    if (status) {
+      whereCondition = and(searchConditions, eq(products.status, status));
+    } else {
+      whereCondition = searchConditions;
+    }
+
+    return await db
+      .select()
+      .from(products)
+      .where(whereCondition)
+      .orderBy(desc(products.submissionDate));
+  }
+
+  async searchProductsBySubmitter(submitterId: string, searchTerm: string): Promise<Product[]> {
+    const searchPattern = `%${searchTerm}%`;
+    
+    return await db
+      .select()
+      .from(products)
+      .where(
+        and(
+          eq(products.submittedBy, submitterId),
+          or(
+            ilike(products.uniqueId, searchPattern),
+            ilike(products.company, searchPattern),
+            ilike(products.brand, searchPattern),
+            ilike(products.product, searchPattern),
+            ilike(products.description, searchPattern),
+            ilike(products.lotBatch, searchPattern),
+            ilike(products.mfgDate, searchPattern),
+            ilike(products.expiryDate, searchPattern),
+            ilike(products.customerCare, searchPattern),
+            ilike(products.email, searchPattern),
+            ilike(products.marketedBy, searchPattern)
+          )
+        )
+      )
       .orderBy(desc(products.submissionDate));
   }
 

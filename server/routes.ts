@@ -93,18 +93,25 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const { status } = req.query;
+      const { status, search } = req.query;
       let products;
 
       if (req.user?.role === "admin") {
-        if (status && typeof status === "string") {
+        if (search && typeof search === "string") {
+          // Search across all products for admin
+          products = await storage.searchProducts(search, status as string);
+        } else if (status && typeof status === "string") {
           products = await storage.getProductsByStatus(status);
         } else {
           products = await storage.getAllProducts();
         }
       } else if (req.user?.role === "operator") {
         // Operators can only see their own products
-        products = await storage.getProductsBySubmitter(req.user.id);
+        if (search && typeof search === "string") {
+          products = await storage.searchProductsBySubmitter(req.user.id, search);
+        } else {
+          products = await storage.getProductsBySubmitter(req.user.id);
+        }
       } else {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -243,6 +250,116 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Delete product error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Import products from CSV/Excel file
+  app.post("/api/products/import", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const { buffer, mimetype, originalname } = req.file;
+      let products: any[] = [];
+
+      // Parse CSV files
+      if (mimetype === 'text/csv' || originalname.endsWith('.csv')) {
+        const csv = require('csv-parser');
+        const { Readable } = require('stream');
+        
+        products = await new Promise((resolve, reject) => {
+          const results: any[] = [];
+          Readable.from(buffer)
+            .pipe(csv())
+            .on('data', (data: any) => results.push(data))
+            .on('end', () => resolve(results))
+            .on('error', reject);
+        });
+      }
+      // Parse Excel files
+      else if (mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+               mimetype === 'application/vnd.ms-excel' ||
+               originalname.endsWith('.xlsx') || originalname.endsWith('.xls')) {
+        const XLSX = require('xlsx');
+        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        products = XLSX.utils.sheet_to_json(worksheet);
+      } else {
+        return res.status(400).json({ message: "Unsupported file format. Please upload CSV or Excel files." });
+      }
+
+      if (products.length === 0) {
+        return res.status(400).json({ message: "No data found in the file" });
+      }
+
+      // Process and validate products
+      let imported = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < products.length; i++) {
+        try {
+          const row = products[i];
+          
+          // Map CSV/Excel columns to our schema (handle different possible column names)
+          const productData = {
+            company: row.company || row.Company || row.COMPANY || "",
+            brand: row.brand || row.Brand || row.BRAND || "",
+            product: row.product || row.Product || row.PRODUCT || row['Product Name'] || "",
+            description: row.description || row.Description || row.DESCRIPTION || "",
+            mrp: row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price || "",
+            netQty: row.netQty || row['Net Qty'] || row['Net Quantity'] || row.quantity || row.Quantity || "",
+            lotBatch: row.lotBatch || row['Lot/Batch'] || row['Lot Batch'] || row.batch || row.Batch || "",
+            mfgDate: row.mfgDate || row['Mfg Date'] || row['Manufacturing Date'] || row.mfgDate || "",
+            expiryDate: row.expiryDate || row['Expiry Date'] || row.expiryDate || "",
+            customerCare: row.customerCare || row['Customer Care'] || row.support || row.Support || "",
+            email: row.email || row.Email || row.EMAIL || "",
+            companyAddress: row.companyAddress || row['Company Address'] || row.address || row.Address || "",
+            marketedBy: row.marketedBy || row['Marketed By'] || row.marketer || row.Marketer || "",
+            uniqueId: row.uniqueId || row['Unique ID'] || "", // Will be auto-generated if empty
+            submittedBy: req.user.id,
+          };
+
+          // Skip rows with missing required fields
+          if (!productData.company || !productData.brand || !productData.product || !productData.description) {
+            skipped++;
+            errors.push(`Row ${i + 1}: Missing required fields (company, brand, product, description)`);
+            continue;
+          }
+
+          // Auto-generate unique ID if not provided
+          if (!productData.uniqueId) {
+            productData.uniqueId = generateUniqueId();
+          }
+
+          // Validate and create product
+          const validatedData = insertProductSchema.parse(productData);
+          await storage.createProduct(validatedData);
+          imported++;
+
+        } catch (error) {
+          skipped++;
+          errors.push(`Row ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      res.json({
+        message: "Import completed",
+        imported,
+        skipped,
+        total: products.length,
+        errors: errors.slice(0, 10) // Limit errors shown to first 10
+      });
+
+    } catch (error) {
+      console.error("Import error:", error);
+      res.status(500).json({ message: "Failed to import products" });
     }
   });
 
