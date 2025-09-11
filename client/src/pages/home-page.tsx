@@ -1,9 +1,10 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, List, Eye, Home, FileCheck, Edit } from "lucide-react";
+import { Plus, List, Eye, Home, FileCheck, Edit, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ProductForm from "@/components/product-form";
@@ -19,14 +20,20 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: products = [], isLoading, refetch } = useQuery<Product[]>({
-    queryKey: ["/api/products", user?.id],
+    queryKey: ["/api/products", user?.id, searchTerm],
     enabled: !!user?.id,
     queryFn: async () => {
-      const res = await fetch("/api/products", { credentials: "include" });
+      const params = new URLSearchParams();
+      if (searchTerm.trim()) {
+        params.append("search", searchTerm.trim());
+      }
+      const url = params.toString() ? `/api/products?${params}` : "/api/products";
+      const res = await fetch(url, { credentials: "include" });
       if (!res.ok) return [];
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -198,6 +205,19 @@ export default function HomePage() {
               <Button onClick={() => refetch()} variant="outline" size="sm" data-testid="button-refresh">
                 Refresh
               </Button>
+            </div>
+            
+            {/* Search Input */}
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by product, batch, company, brand..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+                data-testid="input-search"
+              />
             </div>
             
             {isLoading ? (

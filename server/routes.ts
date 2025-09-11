@@ -14,6 +14,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Upload configuration for product brochures
 const upload = multer({
   dest: uploadDir,
   limits: {
@@ -28,6 +29,31 @@ const upload = multer({
       return cb(null, true);
     } else {
       cb(new Error("Only PDF, DOC, DOCX, JPG, JPEG, PNG files are allowed"));
+    }
+  }
+});
+
+// Upload configuration for CSV/Excel import files
+const importUpload = multer({
+  storage: multer.memoryStorage(), // Store in memory for processing
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for import files
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /csv|xlsx|xls/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetypePatterns = [
+      'text/csv',
+      'application/csv',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel'
+    ];
+    const mimetype = mimetypePatterns.includes(file.mimetype);
+    
+    if (extname && (mimetype || file.originalname.toLowerCase().endsWith('.csv'))) {
+      return cb(null, true);
+    } else {
+      cb(new Error("Only CSV and Excel files (.csv, .xlsx, .xls) are allowed for import"));
     }
   }
 });
@@ -209,7 +235,7 @@ export function registerRoutes(app: Express): Server {
         // Admins can edit any product
       } else if (req.user.role === "operator") {
         // Operators can only edit their own pending or rejected products
-        if (existingProduct.submittedBy !== req.user.email) {
+        if (existingProduct.submittedBy !== req.user.id) {
           return res.status(403).json({ message: "You can only edit your own products" });
         }
         if (existingProduct.status !== "pending" && existingProduct.status !== "rejected") {
@@ -253,11 +279,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Import products from CSV/Excel file
-  app.post("/api/products/import", upload.single('file'), async (req, res) => {
+  // Import products from CSV/Excel file (admin only)
+  app.post("/api/products/import", importUpload.single('file'), async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Authentication required" });
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required for bulk import." });
       }
 
       if (!req.file) {
