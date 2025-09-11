@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Clock, CheckCircle, XCircle, List, Eye, Check, X, Users, Plus, BarChart3, Home } from "lucide-react";
+import { Clock, CheckCircle, XCircle, List, Eye, Check, X, Users, Plus, BarChart3, Home, Download } from "lucide-react";
 import { Product, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -289,6 +289,89 @@ export default function AdminDashboard() {
     window.open(`/track/${uniqueId}`, "_blank");
   };
 
+  // CSV Export functionality
+  const exportToCSV = (products: Product[]) => {
+    if (products.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No products available to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      "Unique ID",
+      "Product Name", 
+      "Brand",
+      "Company",
+      "Description",
+      "MRP",
+      "Net Quantity",
+      "Lot/Batch",
+      "Manufacturing Date",
+      "Expiry Date",
+      "Customer Care",
+      "Email",
+      "Company Address",
+      "Marketed By",
+      "Status",
+      "Submission Date",
+      "Approval Date",
+      "Rejection Reason"
+    ];
+
+    // Convert products to CSV rows
+    const csvRows = products.map(product => [
+      product.uniqueId || "",
+      product.product || "",
+      product.brand || "",
+      product.company || "",
+      product.description || "",
+      product.mrp || "",
+      product.netQty || "",
+      product.lotBatch || "",
+      product.mfgDate || "",
+      product.expiryDate || "",
+      product.customerCare || "",
+      product.email || "",
+      product.companyAddress || "",
+      product.marketedBy || "",
+      product.status || "",
+      product.submissionDate ? new Date(product.submissionDate).toLocaleDateString() : "",
+      product.approvalDate ? new Date(product.approvalDate).toLocaleDateString() : "",
+      product.rejectionReason || ""
+    ]);
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(","),
+      ...csvRows.map(row => 
+        row.map(field => 
+          // Escape commas and quotes in CSV fields
+          `"${String(field).replace(/"/g, '""')}"`
+        ).join(",")
+      )
+    ].join("\n");
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `green-gold-seeds-products-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export Successful",
+      description: `Exported ${products.length} products to CSV file.`,
+    });
+  };
+
   const handleCreateUser = (data: CreateUserData) => {
     createUserMutation.mutate(data);
   };
@@ -391,6 +474,16 @@ export default function AdminDashboard() {
                       Create Operator
                     </Button>
                   )}
+                  {tab === "all" && (
+                    <Button 
+                      onClick={() => exportToCSV(allProducts)}
+                      data-testid="button-export-csv"
+                      variant="outline"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export All
+                    </Button>
+                  )}
                 </div>
 
                 {tab === "users" ? (
@@ -468,7 +561,7 @@ export default function AdminDashboard() {
                             product={product}
                             onApprove={tab === "pending" ? () => handleApprove(product.id) : undefined}
                             onReject={tab === "pending" ? () => handleReject(product) : undefined}
-                            onViewPublic={product.status === "approved" ? () => handleViewPublicPage(product.uniqueId) : undefined}
+                            onViewPublic={() => handleViewPublicPage(product.uniqueId)}
                             onEdit={() => handleEdit(product)}
                             isLoading={approveProductMutation.isPending || rejectProductMutation.isPending || editProductMutation.isPending}
                           />
