@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { insertProductSchema } from "@shared/schema";
 import { z } from "zod";
-import { CloudUpload, Send, RotateCcw } from "lucide-react";
+import { CloudUpload, Send, RotateCcw, Upload } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 const productFormSchema = insertProductSchema.omit({
   submittedBy: true,
@@ -26,6 +28,8 @@ interface ProductFormProps {
 export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -129,12 +133,75 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
     setFile(null);
   };
 
+  const importProductsMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/products/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to import products');
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Import successful",
+        description: `Successfully imported ${data.imported} products. ${data.skipped || 0} rows were skipped.`,
+      });
+      setShowImportDialog(false);
+      setImportFile(null);
+      onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Import failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleImport = () => {
+    if (!importFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV or Excel file to import.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    importProductsMutation.mutate(importFile);
+  };
+
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-2xl">Product Information Entry</CardTitle>
-        <p className="text-muted-foreground">Fill in all required product details for approval</p>
-      </CardHeader>
+    <>
+      <Card className="shadow-sm">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-2xl">Product Information Entry</CardTitle>
+              <p className="text-muted-foreground">Fill in all required product details for approval</p>
+            </div>
+            <Button 
+              onClick={() => setShowImportDialog(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Import Products
+            </Button>
+          </div>
+        </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -402,5 +469,55 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
         </Form>
       </CardContent>
     </Card>
+
+    {/* Import Products Dialog */}
+    <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Import Products</DialogTitle>
+          <DialogDescription>
+            Upload a CSV or Excel file to bulk import products. The file should contain columns for company, brand, product, description, MRP, net quantity, lot/batch, manufacturing date, expiry date, customer care, email, company address, and marketed by.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="import-file">Select File</Label>
+            <Input
+              id="import-file"
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              className="mt-1"
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              Supported formats: CSV, Excel (.xlsx, .xls)
+            </p>
+          </div>
+          {importFile && (
+            <div className="text-sm">
+              <strong>Selected file:</strong> {importFile.name}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setShowImportDialog(false);
+              setImportFile(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleImport}
+            disabled={!importFile || importProductsMutation.isPending}
+          >
+            {importProductsMutation.isPending ? "Importing..." : "Import Products"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
