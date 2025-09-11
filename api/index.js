@@ -694,11 +694,11 @@ async function createApp() {
           };
 
           // Skip rows with missing required fields
-          if (!productData.company || !productData.brand || !productData.product || !productData.description) {
-            skipped++;
-            errors.push(`Row ${i + 1}: Missing required fields (company, brand, product, description)`);
-            continue;
-          }
+          // if (!productData.company || !productData.brand || !productData.product || !productData.description) {
+          //   skipped++;
+          //   errors.push(`Row ${i + 1}: Missing required fields (company, brand, product, description)`);
+          //   continue;
+          // }
 
           // Validate and create product
           const validatedData = insertProductSchema.parse(productData);
