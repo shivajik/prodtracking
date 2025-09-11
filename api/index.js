@@ -364,73 +364,24 @@ async function createApp() {
       const { status } = req.query;
       let products;
 
-      // Add detailed logging for debugging
-      console.log("GET /api/products - User:", {
-        id: req.user?.id,
-        email: req.user?.email,
-        role: req.user?.role,
-        status: status
-      });
-
       if (req.user?.role === "admin") {
         if (status && typeof status === "string") {
-          console.log(`Admin requesting products with status: ${status}`);
           products = await storage.getProductsByStatus(status);
         } else {
-          console.log("Admin requesting all products");
           products = await storage.getAllProducts();
         }
-        console.log(`Found ${products.length} products for admin`);
       } else if (req.user?.role === "operator") {
         // Operators can only see their own products
-        console.log(`Operator requesting products for user ID: ${req.user.id}`);
-        
-        // First check if this user has submitted any products at all
-        const allProducts = await storage.getAllProducts();
-        console.log(`Total products in system: ${allProducts.length}`);
-        
-        const operatorProducts = allProducts.filter(p => {
-          console.log(`Product ${p.uniqueId}: submittedBy=${p.submittedBy}, userType=${typeof p.submittedBy}, operator_id=${req.user.id}, userIdType=${typeof req.user.id}`);
-          return p.submittedBy === req.user.id;
-        });
-        
-        console.log(`Found ${operatorProducts.length} products for operator after manual filter`);
-        
-        // Also try the original query for comparison
         products = await storage.getProductsBySubmitter(req.user.id);
-        console.log(`Found ${products.length} products using storage query`);
-        
-        if (products.length === 0 && operatorProducts.length > 0) {
-          console.error("Storage query returned empty but manual filter found products - there's a data type mismatch!");
-          products = operatorProducts;
-        }
         
         if (products.length === 0) {
-          // Additional debugging - check what user emails have submitted products
-          const uniqueSubmitters = [...new Set(allProducts.map(p => p.submittedBy).filter(Boolean))];
-          console.log("All submitter IDs in system:", uniqueSubmitters);
-          
-          // Try to match by email if ID match fails
-          const productsByEmail = allProducts.filter(p => {
-            // Try to find products submitted by users with same email
-            return false; // We don't have email in products table, but this is for debugging
-          });
-          
           return res.status(404).json({ 
-            message: "No products found for this operator",
-            debug: {
-              operatorId: req.user.id,
-              operatorEmail: req.user.email,
-              totalProducts: allProducts.length,
-              allSubmitterIds: uniqueSubmitters
-            }
+            message: "No products found for this operator. Create some products to see them here."
           });
         }
       } else {
         return res.status(403).json({ message: "Access denied" });
       }
-
-      console.log(`Returning ${products.length} products`);
       res.json(products);
     } catch (error) {
       console.error("Get products error:", error);
