@@ -7,6 +7,9 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import csv from "csv-parser";
+import { Readable } from "stream";
+import * as XLSX from "xlsx";
 
 // Setup multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -295,9 +298,6 @@ export function registerRoutes(app: Express): Server {
 
       // Parse CSV files
       if (mimetype === 'text/csv' || originalname.endsWith('.csv')) {
-        const csv = require('csv-parser');
-        const { Readable } = require('stream');
-        
         products = await new Promise((resolve, reject) => {
           const results: any[] = [];
           Readable.from(buffer)
@@ -311,7 +311,6 @@ export function registerRoutes(app: Express): Server {
       else if (mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
                mimetype === 'application/vnd.ms-excel' ||
                originalname.endsWith('.xlsx') || originalname.endsWith('.xls')) {
-        const XLSX = require('xlsx');
         const workbook = XLSX.read(buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
@@ -348,7 +347,8 @@ export function registerRoutes(app: Express): Server {
             email: row.email || row.Email || row.EMAIL || "",
             companyAddress: row.companyAddress || row['Company Address'] || row.address || row.Address || "",
             marketedBy: row.marketedBy || row['Marketed By'] || row.marketer || row.Marketer || "",
-            uniqueId: row.uniqueId || row['Unique ID'] || "", // Will be auto-generated if empty
+            // Always generate unique ID with our own logic, ignore any provided value
+            uniqueId: generateUniqueId(),
             submittedBy: req.user.id,
           };
 
@@ -357,11 +357,6 @@ export function registerRoutes(app: Express): Server {
             skipped++;
             errors.push(`Row ${i + 1}: Missing required fields (company, brand, product, description)`);
             continue;
-          }
-
-          // Auto-generate unique ID if not provided
-          if (!productData.uniqueId) {
-            productData.uniqueId = generateUniqueId();
           }
 
           // Validate and create product
