@@ -664,8 +664,7 @@ async function createApp() {
           const productData = {
             company: row.company || row.Company || row.COMPANY || "",
             brand: row.brand || row.Brand || row.BRAND || "",
-            product: row.product || row.Product || row.PRODUCT || row['Product Name'] || "",
-            cropName: row.cropName || row['Crop Name'] || row['Product Name'] || "",
+            product: row.product || row.Product || row.PRODUCT || row['Product Name'] || row['Crop Name'] || "",
             description: row.description || row.Description || row.DESCRIPTION || "",
             mrp: row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price || "",
             netQty: row.netQty || row['Net Qty'] || row['Net Quantity'] || row.quantity || row.Quantity || "",

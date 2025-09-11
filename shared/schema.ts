@@ -19,7 +19,6 @@ export const products = pgTable("products", {
   company: text("company").notNull(),
   brand: text("brand").notNull(),
   product: text("product").notNull(),
-  cropName: text("crop_name"),
   description: text("description").notNull(),
   mrp: decimal("mrp", { precision: 10, scale: 2 }).notNull(),
   netQty: text("net_qty").notNull(),
