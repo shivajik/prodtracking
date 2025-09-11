@@ -308,8 +308,8 @@ export default function AdminDashboard() {
     }
   };
 
-  // CSV Export functionality with QR codes
-  const exportToCSV = async (products: Product[]) => {
+  // Excel Export functionality with QR codes and proper formatting
+  const exportToExcel = async (products: Product[]) => {
     if (products.length === 0) {
       toast({
         title: "No Data",
@@ -321,80 +321,157 @@ export default function AdminDashboard() {
 
     toast({
       title: "Generating Export",
-      description: "Creating QR codes and preparing CSV file...",
+      description: "Creating QR codes and preparing Excel file...",
     });
 
     try {
-      // Define CSV headers with proper spacing
+      // Dynamic import for ExcelJS
+      const { Workbook } = await import('exceljs');
+      const workbook = new Workbook();
+      const worksheet = workbook.addWorksheet('Products');
+
+      // Define headers with proper styling
       const headers = [
-        "Unique ID".padEnd(20),
-        "Product Name".padEnd(30), 
-        "Brand".padEnd(20),
-        "Company".padEnd(30),
-        "Description".padEnd(50),
-        "MRP (₹)".padEnd(15),
-        "Net Quantity".padEnd(15),
-        "Lot/Batch".padEnd(15),
-        "Manufacturing Date".padEnd(18),
-        "Expiry Date".padEnd(15),
-        "Customer Care".padEnd(25),
-        "Email".padEnd(30),
-        "Company Address".padEnd(50),
-        "Marketed By".padEnd(30),
-        "Status".padEnd(12),
-        "Submission Date".padEnd(15),
-        "Approval Date".padEnd(15),
-        "Rejection Reason".padEnd(30),
-        "QR Code (Base64)".padEnd(100),
-        "Tracking URL".padEnd(50)
+        "Unique ID",
+        "Product Name", 
+        "Brand",
+        "Company",
+        "Description",
+        "MRP (₹)",
+        "Net Quantity",
+        "Lot/Batch",
+        "Manufacturing Date",
+        "Expiry Date",
+        "Customer Care",
+        "Email",
+        "Company Address",
+        "Marketed By",
+        "Status",
+        "Submission Date",
+        "Approval Date",
+        "Rejection Reason",
+        "QR Code",
+        "Tracking URL"
       ];
 
-      // Convert products to CSV rows with QR codes
-      const csvRows = await Promise.all(products.map(async (product) => {
-        const qrCodeDataUrl = await generateQRCode(product.uniqueId || '');
+      // Add headers with styling
+      const headerRow = worksheet.addRow(headers);
+      headerRow.height = 45;
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF366092' }
+        };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      // Set column widths for better spacing
+      const columnWidths = [15, 25, 20, 25, 40, 12, 15, 15, 18, 15, 20, 25, 35, 25, 12, 15, 15, 30, 20, 40];
+      columnWidths.forEach((width, index) => {
+        worksheet.getColumn(index + 1).width = width;
+      });
+
+      // Add data rows with QR codes
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
         const trackingUrl = `${window.location.origin}/track/${product.uniqueId}`;
         
-        return [
-          (product.uniqueId || "").padEnd(20),
-          (product.product || "").padEnd(30),
-          (product.brand || "").padEnd(20),
-          (product.company || "").padEnd(30),
-          (product.description || "").padEnd(50),
-          (product.mrp || "").padEnd(15),
-          (product.netQty || "").padEnd(15),
-          (product.lotBatch || "").padEnd(15),
-          (product.mfgDate || "").padEnd(18),
-          (product.expiryDate || "").padEnd(15),
-          (product.customerCare || "").padEnd(25),
-          (product.email || "").padEnd(30),
-          (product.companyAddress || "").padEnd(50),
-          (product.marketedBy || "").padEnd(30),
-          (product.status || "").padEnd(12),
-          (product.submissionDate ? new Date(product.submissionDate).toLocaleDateString() : "").padEnd(15),
-          (product.approvalDate ? new Date(product.approvalDate).toLocaleDateString() : "").padEnd(15),
-          (product.rejectionReason || "").padEnd(30),
-          qrCodeDataUrl.padEnd(100),
-          trackingUrl.padEnd(50)
+        // Generate QR code as buffer for embedding
+        const qrCodeDataUrl = await generateQRCode(product.uniqueId || '');
+        
+        const rowData = [
+          product.uniqueId || "",
+          product.product || "",
+          product.brand || "",
+          product.company || "",
+          product.description || "",
+          product.mrp || "",
+          product.netQty || "",
+          product.lotBatch || "",
+          product.mfgDate || "",
+          product.expiryDate || "",
+          product.customerCare || "",
+          product.email || "",
+          product.companyAddress || "",
+          product.marketedBy || "",
+          product.status || "",
+          product.submissionDate ? new Date(product.submissionDate).toLocaleDateString() : "",
+          product.approvalDate ? new Date(product.approvalDate).toLocaleDateString() : "",
+          product.rejectionReason || "",
+          "", // QR Code column - will be replaced with image
+          trackingUrl
         ];
-      }));
 
-      // Create CSV content with proper spacing
-      const csvContent = [
-        headers.join(","),
-        ...csvRows.map(row => 
-          row.map(field => 
-            // Escape commas and quotes in CSV fields
-            `"${String(field).replace(/"/g, '""')}"`
-          ).join(",")
-        )
-      ].join("\n");
+        const row = worksheet.addRow(rowData);
+        
+        // Add borders to all cells
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle', wrapText: true };
+        });
 
+        // Add QR code image if available
+        if (qrCodeDataUrl) {
+          try {
+            // Extract base64 data from data URL
+            const base64Data = qrCodeDataUrl.split(',')[1];
+            
+            const imageId = workbook.addImage({
+              base64: base64Data,
+              extension: 'png',
+            });
+
+            // Add image to the QR Code column (column 19, row index + 2 because header is row 1)
+            worksheet.addImage(imageId, {
+              tl: { col: 18, row: i + 1 }, // 0-indexed column, 0-indexed row
+              ext: { width: 80, height: 80 }
+            });
+
+            // Set row height to accommodate QR code
+            row.height = 80;
+          } catch (error) {
+            console.error('Error adding QR code image:', error);
+            // Fallback to text if image fails
+            row.getCell(19).value = "QR Code Error";
+          }
+        }
+
+        // Make tracking URL a clickable hyperlink
+        const trackingCell = row.getCell(20);
+        trackingCell.value = {
+          text: trackingUrl,
+          hyperlink: trackingUrl
+        };
+        trackingCell.font = { color: { argb: 'FF0066CC' }, underline: true };
+      }
+
+      // Freeze the header row
+      worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+      // Generate Excel file buffer
+      const buffer = await workbook.xlsx.writeBuffer();
+      
       // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob([buffer], { 
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+      });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", `green-gold-seeds-products-${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute("download", `green-gold-seeds-products-${new Date().toISOString().split('T')[0]}.xlsx`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
@@ -402,13 +479,13 @@ export default function AdminDashboard() {
 
       toast({
         title: "Export Successful",
-        description: `Exported ${products.length} products with QR codes to CSV file.`,
+        description: `Exported ${products.length} products with QR codes to Excel file.`,
       });
     } catch (error) {
       console.error('Export error:', error);
       toast({
         title: "Export Failed",
-        description: "Failed to generate CSV file. Please try again.",
+        description: "Failed to generate Excel file. Please try again.",
         variant: "destructive",
       });
     }
@@ -518,8 +595,8 @@ export default function AdminDashboard() {
                   )}
                   {tab === "all" && (
                     <Button 
-                      onClick={() => exportToCSV(allProducts)}
-                      data-testid="button-export-csv"
+                      onClick={() => exportToExcel(allProducts)}
+                      data-testid="button-export-excel"
                       variant="outline"
                     >
                       <Download className="h-4 w-4 mr-2" />
