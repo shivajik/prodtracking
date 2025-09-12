@@ -834,7 +834,7 @@ async function createApp() {
             
             // Pricing info - NO FALLBACKS  
             mrp: parseDecimal(row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price),
-            unitSalePrice: parseDecimal(row.unitSalePrice || row['Unit Sale Price'] || row.unitPrice || row['Unit Price']),
+            unitSalePrice: parseDecimal(row.unitSalePrice || row['Unit Sale Price'] || row['Unit Sale Prize'] || row.unitPrice || row['Unit Price']),
             
             // Quantity and packaging - NO FALLBACKS
             netQty: row.netQty || row['Net Qty'] || row['Net Quantity'] || row.quantity || row.Quantity || row['Qty(kg)'] || null,

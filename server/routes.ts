@@ -454,14 +454,14 @@ export function registerRoutes(app: Express): Server {
 
           const productData = {
             // Core product info - NO FALLBACKS
-            company: row.company || row.Company || row.COMPANY || null,
-            brand: row.brand || row.Brand || row.BRAND || null,
+            company: row.company || row.Company || row.COMPANY || '',
+            brand: row.brand || row.Brand || row.BRAND || '',
             product: row['Crop Name'] || row.product || row.Product || row.PRODUCT || row['Product Name'] || row['CROP NAME'] || null,
             description: row.description || row.Description || row.DESCRIPTION || null,
             
             // Pricing info - NO FALLBACKS  
             mrp: parseDecimal(row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price),
-            unitSalePrice: parseDecimal(row.unitSalePrice || row['Unit Sale Price'] || row.unitPrice || row['Unit Price']),
+            unitSalePrice: parseDecimal(row.unitSalePrice || row['Unit Sale Price'] || row['Unit Sale Prize'] || row.unitPrice || row['Unit Price']),
             
             // Quantity and packaging - NO FALLBACKS
             netQty: row.netQty || row['Net Qty'] || row['Net Quantity'] || row.quantity || row.Quantity || row['Qty(kg)'] || null,
