@@ -424,18 +424,18 @@ export function registerRoutes(app: Express): Server {
           console.log("🗂️ Mapping Excel columns to schema fields...");
           
           // Skip empty rows - check if essential fields are missing
-          const hasEssentialData = row['Crop Name'] || row['Location'] || row['Lot No.'] || row['Production Code FF'];
-          if (!hasEssentialData) {
-            console.log(`⚠️  Row ${i + 1}: Skipping empty row - no essential data found`);
-            skipped++;
-            continue;
-          }
+          // const hasEssentialData = row['Crop Name'] || row['Location'] || row['Lot No.'] || row['Production Code FF'];
+          // if (!hasEssentialData) {
+          //   console.log(`⚠️  Row ${i + 1}: Skipping empty row - no essential data found`);
+          //   skipped++;
+          //   continue;
+          // }
 
           const productData = {
             // Core product info - NO FALLBACKS
             company: row.company || row.Company || row.COMPANY || null,
             brand: row.brand || row.Brand || row.BRAND || null,
-            product: row['Crop Name'] || row.product || row.Product || row.PRODUCT || row['Product Name'] || null,
+            product: row['Crop Name'] || row.product || row.Product || row.PRODUCT || row['Product Name'] || row['CROP NAME'] || null,
             description: row.description || row.Description || row.DESCRIPTION || null,
             
             // Pricing info - NO FALLBACKS  

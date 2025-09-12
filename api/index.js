@@ -792,12 +792,12 @@ async function createApp() {
           console.log(`📄 Raw row data:`, JSON.stringify(row, null, 2));
           
           // Skip empty rows - check if essential fields are missing
-          const hasEssentialData = row['Crop Name'] || row['Location'] || row['Lot No.'] || row['Production Code FF'];
-          if (!hasEssentialData) {
-            console.log(`⚠️  Row ${i + 1}: Skipping empty row - no essential data found`);
-            skipped++;
-            continue;
-          }
+          // const hasEssentialData = row['Crop Name'] || row['Location'] || row['Lot No.'] || row['Production Code FF'];
+          // if (!hasEssentialData) {
+          //   console.log(`⚠️  Row ${i + 1}: Skipping empty row - no essential data found`);
+          //   skipped++;
+          //   continue;
+          // }
 
           // Enhanced column mapping with exact matches from your Excel structure
           console.log("🗂️ Mapping Excel columns to schema fields...");
@@ -806,7 +806,7 @@ async function createApp() {
             // Core product info - NO FALLBACKS
             company: row.company || row.Company || row.COMPANY || null,
             brand: row.brand || row.Brand || row.BRAND || null,
-            product: row['Crop Name'] || row.product || row.Product || row.PRODUCT || row['Product Name'] || null,
+            product: row['Crop Name'] || row.product || row.Product || row.PRODUCT || row['Product Name'] || row['CROP NAME'] || null,
             description: row.description || row.Description || row.DESCRIPTION || null,
             
             // Pricing info - NO FALLBACKS  
