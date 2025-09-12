@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,6 +104,46 @@ export default function ProductEditDialog({
       gotAve: product.gotAve ? product.gotAve.toString() : "",
     },
   });
+
+  // Reset form when product changes
+  useEffect(() => {
+    editForm.reset({
+      company: product.company || "",
+      brand: product.brand || "",
+      product: product.product || "",
+      description: product.description || "",
+      mrp: product.mrp?.toString() || "",
+      netQty: product.netQty || "",
+      lotBatch: product.lotBatch || "",
+      mfgDate: product.mfgDate || "",
+      expiryDate: product.expiryDate || "",
+      customerCare: product.customerCare || "",
+      email: product.email || "",
+      companyAddress: product.companyAddress || "",
+      marketedBy: product.marketedBy || "",
+      packSize: product.packSize || "",
+      dateOfTest: product.dateOfTest || "",
+      unitSalePrice: product.unitSalePrice ? product.unitSalePrice.toString() : "",
+      noOfPkts: product.noOfPkts ? product.noOfPkts.toString() : "",
+      totalPkts: product.totalPkts ? product.totalPkts.toString() : "",
+      from: product.from || "",
+      to: product.to || "",
+      marketingCode: product.marketingCode || "",
+      unitOfMeasureCode: product.unitOfMeasureCode || "",
+      marketCode: product.marketCode || "",
+      prodCode: product.prodCode || "",
+      lotNo: product.lotNo || "",
+      gb: product.gb ? product.gb.toString() : "",
+      location: product.location || "",
+      stageCode: product.stageCode || "",
+      remainingQuantity: product.remainingQuantity ? product.remainingQuantity.toString() : "",
+      stackNo: product.stackNo || "",
+      normalGermination: product.normalGermination ? product.normalGermination.toString() : "",
+      gerAve: product.gerAve ? product.gerAve.toString() : "",
+      gotPercent: product.gotPercent ? product.gotPercent.toString() : "",
+      gotAve: product.gotAve ? product.gotAve.toString() : "",
+    });
+  }, [product, editForm]);
 
   const handleSave = (data: EditProductData) => {
     // Convert string inputs back to numbers for numeric fields
