@@ -4,26 +4,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Product } from "@shared/schema";
 import { z } from "zod";
 
+// Crop and market code data mapping
+const cropMarketData = {
+  "Cotton": ["CTN001", "CTN002", "CTN003", "CTN004"],
+  "Wheat": ["WHT001", "WHT002", "WHT003"],
+  "Rice": ["RIC001", "RIC002", "RIC003", "RIC004", "RIC005"],
+  "Maize": ["MZE001", "MZE002", "MZE003"],
+  "Soybean": ["SOY001", "SOY002", "SOY003"],
+  "Sugarcane": ["SGC001", "SGC002"],
+  "Mustard": ["MSD001", "MSD002", "MSD003"],
+  "Groundnut": ["GND001", "GND002"],
+  "Sunflower": ["SFL001", "SFL002", "SFL003"],
+  "Bajra": ["BJR001", "BJR002"],
+  "Jowar": ["JWR001", "JWR002"],
+  "Barley": ["BRL001", "BRL002"]
+};
+
 const editProductSchema = z.object({
   company: z.string().min(1, "Company is required"),
   brand: z.string().min(1, "Brand is required"),
-  product: z.string().min(1, "Product name is required"),
-  description: z.string().min(1, "Description is required"),
-  mrp: z.string().min(1, "MRP is required"),
-  netQty: z.string().min(1, "Net quantity is required"),
-  lotBatch: z.string().min(1, "Lot/Batch is required"),
-  mfgDate: z.string().min(1, "Manufacturing date is required"),
-  expiryDate: z.string().min(1, "Expiry date is required"),
-  customerCare: z.string().min(1, "Customer care is required"),
-  email: z.string().email("Invalid email format"),
-  companyAddress: z.string().min(1, "Company address is required"),
-  marketedBy: z.string().min(1, "Marketed by is required"),
+  cropName: z.string().min(1, "Crop name is required"),
+  description: z.string().optional(),
+  mrp: z.string().optional(),
+  netQty: z.string().optional(),
+  lotBatch: z.string().optional(),
+  mfgDate: z.string().optional(),
+  expiryDate: z.string().optional(),
+  customerCare: z.string().optional(),
+  email: z.string().optional(),
+  companyAddress: z.string().optional(),
+  marketedBy: z.string().optional(),
   // Additional fields
   packSize: z.string().optional(),
   dateOfTest: z.string().optional(),
@@ -32,7 +49,6 @@ const editProductSchema = z.object({
   totalPkts: z.string().optional(),
   from: z.string().optional(),
   to: z.string().optional(),
-  marketingCode: z.string().optional(),
   unitOfMeasureCode: z.string().optional(),
   marketCode: z.string().optional(),
   prodCode: z.string().optional(),
@@ -65,12 +81,15 @@ export default function ProductEditDialog({
   onSave,
   isLoading = false
 }: ProductEditDialogProps) {
+  const [selectedCrop, setSelectedCrop] = useState<string>(product.product || "");
+  const [availableMarketCodes, setAvailableMarketCodes] = useState<string[]>([]);
+
   const editForm = useForm<EditProductData>({
     resolver: zodResolver(editProductSchema),
     defaultValues: {
       company: product.company || "",
       brand: product.brand || "",
-      product: product.product || "",
+      cropName: product.product || "",
       description: product.description || "",
       mrp: product.mrp?.toString() || "",
       netQty: product.netQty || "",
@@ -88,7 +107,6 @@ export default function ProductEditDialog({
       totalPkts: product.totalPkts ? product.totalPkts.toString() : "",
       from: product.from || "",
       to: product.to || "",
-      marketingCode: product.marketingCode || "",
       unitOfMeasureCode: product.unitOfMeasureCode || "",
       marketCode: product.marketCode || "",
       prodCode: product.prodCode || "",
@@ -105,12 +123,23 @@ export default function ProductEditDialog({
     },
   });
 
+  // Update available market codes when crop changes
+  useEffect(() => {
+    if (selectedCrop && cropMarketData[selectedCrop as keyof typeof cropMarketData]) {
+      setAvailableMarketCodes(cropMarketData[selectedCrop as keyof typeof cropMarketData]);
+    } else {
+      setAvailableMarketCodes([]);
+    }
+  }, [selectedCrop]);
+
   // Reset form when product changes
   useEffect(() => {
+    const cropName = product.product || "";
+    setSelectedCrop(cropName);
     editForm.reset({
       company: product.company || "",
       brand: product.brand || "",
-      product: product.product || "",
+      cropName: cropName,
       description: product.description || "",
       mrp: product.mrp?.toString() || "",
       netQty: product.netQty || "",
@@ -128,7 +157,6 @@ export default function ProductEditDialog({
       totalPkts: product.totalPkts ? product.totalPkts.toString() : "",
       from: product.from || "",
       to: product.to || "",
-      marketingCode: product.marketingCode || "",
       unitOfMeasureCode: product.unitOfMeasureCode || "",
       marketCode: product.marketCode || "",
       prodCode: product.prodCode || "",
@@ -145,10 +173,19 @@ export default function ProductEditDialog({
     });
   }, [product, editForm]);
 
+  const handleCropChange = (cropName: string) => {
+    setSelectedCrop(cropName);
+    editForm.setValue("cropName", cropName);
+    // Reset market code when crop changes
+    editForm.setValue("marketCode", "");
+  };
+
   const handleSave = (data: EditProductData) => {
     // Convert string inputs back to numbers for numeric fields
     const processedData: Partial<Product> = {
       ...data,
+      // Map cropName back to product field for backward compatibility
+      product: data.cropName,
       // Convert string fields to numbers where needed, handling empty strings
       mrp: data.mrp ? parseFloat(data.mrp) : undefined,
       unitSalePrice: data.unitSalePrice ? parseFloat(data.unitSalePrice) : undefined,
@@ -161,6 +198,9 @@ export default function ProductEditDialog({
       gotPercent: data.gotPercent ? parseFloat(data.gotPercent) : undefined,
       gotAve: data.gotAve ? parseFloat(data.gotAve) : undefined,
     };
+    
+    // Remove the cropName field since it's mapped to product
+    delete (processedData as any).cropName;
     
     onSave(processedData);
   };
@@ -209,12 +249,23 @@ export default function ProductEditDialog({
               
               <FormField
                 control={editForm.control}
-                name="product"
+                name="cropName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Product Name</FormLabel>
+                    <FormLabel>Crop Name</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-edit-product" />
+                      <Select value={field.value} onValueChange={handleCropChange}>
+                        <SelectTrigger data-testid="select-edit-crop-name">
+                          <SelectValue placeholder="Select crop name" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(cropMarketData).map((crop) => (
+                            <SelectItem key={crop} value={crop}>
+                              {crop}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -491,21 +542,7 @@ export default function ProductEditDialog({
             </div>
             
             {/* Codes and Technical Information */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <FormField
-                control={editForm.control}
-                name="marketingCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Marketing Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-edit-marketing-code" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={editForm.control}
                 name="unitOfMeasureCode"
@@ -527,7 +564,18 @@ export default function ProductEditDialog({
                   <FormItem>
                     <FormLabel>Market Code</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-edit-market-code" />
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger data-testid="select-edit-market-code">
+                          <SelectValue placeholder="Select market code" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableMarketCodes.map((code) => (
+                            <SelectItem key={code} value={code}>
+                              {code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
