@@ -39,8 +39,17 @@ function parseDecimal(value) {
     return value.toString();
   }
   
-  // Convert string values to number and preserve decimals
-  const parsed = parseFloat(String(value));
+  // Handle string values - sanitize formatted numbers
+  let stringValue = String(value).trim();
+  if (stringValue === "") {
+    return null;
+  }
+  
+  // Remove thousands separators (commas) and normalize
+  stringValue = stringValue.replace(/,/g, '');
+  
+  // Convert to number and preserve decimals
+  const parsed = parseFloat(stringValue);
   if (isNaN(parsed)) {
     return null;
   }
