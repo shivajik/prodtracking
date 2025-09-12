@@ -17,6 +17,45 @@ import { queryClient } from "@/lib/queryClient";
 
 const productFormSchema = insertProductSchema.omit({
   submittedBy: true,
+}).extend({
+  // Override all optional string fields to be required strings for the form
+  company: z.string().default(""),
+  brand: z.string().default(""),
+  product: z.string().default(""),
+  description: z.string().default(""),
+  mrp: z.string().default(""),
+  netQty: z.string().default(""),
+  lotBatch: z.string().default(""),
+  mfgDate: z.string().default(""),
+  expiryDate: z.string().default(""),
+  uniqueId: z.string().default(""),
+  customerCare: z.string().default(""),
+  email: z.string().default(""),
+  companyAddress: z.string().default(""),
+  marketedBy: z.string().default(""),
+  brochureUrl: z.string().default(""),
+  brochureFilename: z.string().default(""),
+  packSize: z.string().default(""),
+  dateOfTest: z.string().default(""),
+  unitSalePrice: z.string().default(""),
+  noOfPkts: z.string().default(""),
+  totalPkts: z.string().default(""),
+  from: z.string().default(""),
+  to: z.string().default(""),
+  marketingCode: z.string().default(""),
+  unitOfMeasureCode: z.string().default(""),
+  marketCode: z.string().default(""),
+  prodCode: z.string().default(""),
+  lotNo: z.string().default(""),
+  gb: z.string().default(""),
+  location: z.string().default(""),
+  stageCode: z.string().default(""),
+  remainingQuantity: z.string().default(""),
+  stackNo: z.string().default(""),
+  normalGermination: z.string().default(""),
+  gerAve: z.string().default(""),
+  gotPercent: z.string().default(""),
+  gotAve: z.string().default(""),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -50,6 +89,27 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
       marketedBy: "",
       brochureUrl: "",
       brochureFilename: "",
+      packSize: "",
+      dateOfTest: "",
+      unitSalePrice: "",
+      noOfPkts: "",
+      totalPkts: "",
+      from: "",
+      to: "",
+      marketingCode: "",
+      unitOfMeasureCode: "",
+      marketCode: "",
+      prodCode: "",
+      lotNo: "",
+      gb: "",
+      location: "",
+      stageCode: "",
+      remainingQuantity: "",
+      stackNo: "",
+      normalGermination: "",
+      gerAve: "",
+      gotPercent: "",
+      gotAve: "",
     },
   });
 
@@ -281,7 +341,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
             />
             
             {/* Pricing and Quantity */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <FormField
                 control={form.control}
                 name="mrp"
@@ -309,6 +369,65 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="packSize"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pack Size</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-pack-size" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Additional Pricing Information */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FormField
+                control={form.control}
+                name="unitSalePrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit Sale Price</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.01" data-testid="input-unit-sale-price" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="noOfPkts"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>No. of Packets</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" data-testid="input-no-of-pkts" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="totalPkts"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Packets</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" data-testid="input-total-pkts" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             
             {/* Batch and Date Information */}
@@ -327,6 +446,36 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 )}
               />
               
+              <FormField
+                control={form.control}
+                name="lotNo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lot No</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-lot-no" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="stackNo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stack No</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-stack-no" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <FormField
                 control={form.control}
                 name="mfgDate"
@@ -349,6 +498,20 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                     <FormLabel>Expiry Date *</FormLabel>
                     <FormControl>
                       <Input {...field} type="date" data-testid="input-expiry-date" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="dateOfTest"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date of Test</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="date" data-testid="input-date-of-test" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -402,19 +565,230 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="marketedBy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Marketed By *</FormLabel>
-                  <FormControl>
-                    <Input {...field} data-testid="input-marketed-by" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="marketedBy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Marketed By *</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-marketed-by" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-location" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Distribution Range */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="from"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>From</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-from" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="to"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>To</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-to" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Codes and Technical Information */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <FormField
+                control={form.control}
+                name="marketingCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Marketing Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-marketing-code" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="unitOfMeasureCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit of Measure Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-unit-of-measure-code" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="marketCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Market Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-market-code" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="prodCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-prod-code" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="stageCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stage Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-stage-code" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="remainingQuantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Remaining Quantity</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.01" data-testid="input-remaining-quantity" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Quality and Testing Information */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FormField
+                control={form.control}
+                name="normalGermination"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Normal Germination (%)</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.01" data-testid="input-normal-germination" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="gerAve"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Germination Average</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.01" data-testid="input-ger-ave" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="gb"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>GB</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.01" data-testid="input-gb" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="gotPercent"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>GOT Percent</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.00000001" data-testid="input-got-percent" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="gotAve"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>GOT Average</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.0001" data-testid="input-got-ave" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             {/* File Upload */}
             <div>
