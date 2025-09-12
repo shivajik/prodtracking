@@ -312,34 +312,101 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
+      console.log("🔍 Starting Excel Import Process");
+      console.log(`📄 File: ${req.file.originalname}, Size: ${req.file.size} bytes, MimeType: ${req.file.mimetype}`);
+
       const { buffer, mimetype, originalname } = req.file;
       let products: any[] = [];
+      let headers: string[] = [];
 
       // Parse CSV files
       if (mimetype === 'text/csv' || originalname.endsWith('.csv')) {
+        console.log("📊 Processing CSV file...");
         products = await new Promise((resolve, reject) => {
           const results: any[] = [];
           Readable.from(buffer)
             .pipe(csv())
-            .on('data', (data: any) => results.push(data))
+            .on('data', (data: any) => {
+              if (results.length === 0) {
+                headers = Object.keys(data);
+                console.log("📋 CSV Headers found:", headers);
+              }
+              results.push(data);
+            })
             .on('end', () => resolve(results))
             .on('error', reject);
         });
       }
-      // Parse Excel files
+      // Parse Excel files with enhanced options
       else if (mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
                mimetype === 'application/vnd.ms-excel' ||
                originalname.endsWith('.xlsx') || originalname.endsWith('.xls')) {
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        
+        console.log("📊 Processing Excel file...");
+        
+        // Read workbook with enhanced options to handle formulas and formatted values
+        const workbook = XLSX.read(buffer, { 
+          type: 'buffer',
+          cellDates: true,      // Convert dates to JS Date objects
+          cellNF: false,        // Don't format numbers
+          cellText: false,      // Don't convert to text
+          raw: false,           // Parse formatted values
+          dateNF: 'yyyy-mm-dd'  // Standard date format
+        });
+        
+        console.log("📚 Available sheets:", workbook.SheetNames);
+        
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        products = XLSX.utils.sheet_to_json(worksheet);
+        
+        console.log("📋 Processing sheet:", sheetName);
+        
+        // Get the range of the worksheet
+        const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+        console.log(`📏 Sheet range: ${range.s.r + 1}:${range.e.r + 1} rows, ${range.s.c + 1}:${range.e.c + 1} columns`);
+        
+        // Extract headers from first row
+        headers = [];
+        for (let col = range.s.c; col <= range.e.c; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: col });
+          const cell = worksheet[cellAddress];
+          if (cell && cell.v) {
+            headers.push(String(cell.v).trim());
+          } else {
+            headers.push(`Column_${col + 1}`);
+          }
+        }
+        
+        console.log("📋 Excel Headers extracted:", headers);
+        console.log("📋 Number of headers:", headers.length);
+        
+        // Convert to JSON with proper options
+        products = XLSX.utils.sheet_to_json(worksheet, {
+          header: headers,
+          range: 1, // Skip first row (headers)
+          defval: "", // Default value for empty cells
+          raw: false, // Use formatted values
+          dateNF: 'yyyy-mm-dd'
+        });
+        
+        console.log(`📈 Total rows extracted: ${products.length}`);
+        
       } else {
         return res.status(400).json({ message: "Unsupported file format. Please upload CSV or Excel files." });
       }
 
       if (products.length === 0) {
+        console.log("❌ No data found in the file");
         return res.status(400).json({ message: "No data found in the file" });
+      }
+
+      console.log("✅ File parsing completed successfully");
+      console.log(`🔢 Total rows to process: ${products.length}`);
+      
+      // Log first few rows for debugging
+      console.log("🔍 Sample data from first 3 rows:");
+      for (let i = 0; i < Math.min(3, products.length); i++) {
+        console.log(`📝 Row ${i + 1} data:`, JSON.stringify(products[i], null, 2));
       }
 
       // Process and validate products
@@ -350,57 +417,106 @@ export function registerRoutes(app: Express): Server {
       for (let i = 0; i < products.length; i++) {
         try {
           const row = products[i];
+          console.log(`\n🔄 Processing row ${i + 1}:`);
+          console.log(`📄 Raw row data:`, JSON.stringify(row, null, 2));
           
-          // Map CSV/Excel columns to our schema (handle different possible column names)
+          // Enhanced column mapping with exact matches from your Excel structure
+          console.log("🗂️ Mapping Excel columns to schema fields...");
+          
           const productData = {
-            company: row.company || row.Company || row.COMPANY || "",
-            brand: row.brand || row.Brand || row.BRAND || "",
+            // Core product info
+            company: row.company || row.Company || row.COMPANY || "Green Gold Seeds",
+            brand: row.brand || row.Brand || row.BRAND || "Green Gold",
             product: row.product || row.Product || row.PRODUCT || row['Product Name'] || row['Crop Name'] || "",
-            description: row.description || row.Description || row.DESCRIPTION || "",
-            mrp: parseDecimal(row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price),
-            netQty: row.netQty || row['Net Qty'] || row['Net Quantity'] || row.quantity || row.Quantity || "",
-            lotBatch: row.lotBatch || row['Lot/Batch'] || row['Lot Batch'] || row.batch || row.Batch || row['New Lot No'] || "",
-            mfgDate: excelDateToString(row.mfgDate || row['Mfg Date'] || row['Manufacturing Date'] || row['Date of Packing'] || row.mfgDate),
-            expiryDate: excelDateToString(row.expiryDate || row['Expiry Date'] || row['Valid Upto'] || row.expiryDate),
+            description: row.description || row.Description || row.DESCRIPTION || 
+                        `${row['Crop Name'] || ''} - ${row['Market Code'] || ''} - ${row['Prod. Co*'] || ''}`.trim(),
+            
+            // Pricing info
+            mrp: parseDecimal(row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price || row['Unit Sale Price']),
+            unitSalePrice: parseDecimal(row.unitSalePrice || row['Unit Sale Price'] || row.unitPrice || row['Unit Price']),
+            
+            // Quantity and packaging
+            netQty: row.netQty || row['Net Qty'] || row['Net Quantity'] || row.quantity || row.Quantity || row['Qty(kg)'] || "",
+            packSize: row.packSize || row['Pack Size'] || row.size || row.Size || "",
+            noOfPkts: parseDecimal(row.noOfPkts || row['No Of Pkts'] || row['No of Pkts'] || row.packets || row.Packets || row['No of Pkts']),
+            totalPkts: parseDecimal(row.totalPkts || row['Total Pkts'] || row.totalPackets || row['Total Packets'] || row['Total Pkg']),
+            
+            // Batch and lot info
+            lotBatch: row.lotBatch || row['Lot/Batch'] || row['Lot Batch'] || row.batch || row.Batch || row['New Lot No'] || row['Lot No.'] || row['Lot No'] || "",
+            lotNo: row.lotNo || row['Lot No'] || row['Lot No.'] || row.lot || row.Lot || "",
+            gb: parseDecimal(row.gb || row.GB || row.Gb),
+            
+            // Dates
+            mfgDate: excelDateToString(row.mfgDate || row['Mfg Date'] || row['Manufacturing Date'] || row['Date of Packing'] || row['Date Of Packing']),
+            expiryDate: excelDateToString(row.expiryDate || row['Expiry Date'] || row['Valid Up To'] || row['Valid Upto']),
+            dateOfTest: excelDateToString(row.dateOfTest || row['Date Of Test'] || row.testDate || row['Test Date']),
+            
+            // Contact and company info
             customerCare: row.customerCare || row['Customer Care'] || row.support || row.Support || "",
             email: row.email || row.Email || row.EMAIL || "",
             companyAddress: row.companyAddress || row['Company Address'] || row.address || row.Address || "",
             marketedBy: row.marketedBy || row['Marketed By'] || row.marketer || row.Marketer || "",
-            packSize: row.packSize || row['Pack Size'] || row.size || row.Size || "",
-            dateOfTest: excelDateToString(row.dateOfTest || row['Date Of Test'] || row.testDate || row['Test Date']),
-            unitSalePrice: parseDecimal(row.unitSalePrice || row['Unit Sale Price'] || row.unitPrice || row['Unit Price']),
-            noOfPkts: parseDecimal(row.noOfPkts || row['No Of Pkts'] || row['No of Pkts'] || row.packets || row.Packets),
-            totalPkts: parseDecimal(row.totalPkts || row['Total Pkts'] || row.totalPackets || row['Total Packets']),
+            
+            // Range and location
             from: row.from || row.From || row.FROM || "",
             to: row.to || row.To || row.TO || "",
+            
+            // Codes
             marketingCode: row.marketingCode || row['Marketing Code'] || row.code || row.Code || "",
             unitOfMeasureCode: row.unitOfMeasureCode || row['Unit of Measure Code'] || row.unit || row.Unit || "",
             marketCode: row.marketCode || row['Market Code'] || row.market || row.Market || "",
-            prodCode: row.prodCode || row['Prod. Code'] || row['Prod Code'] || row.productCode || row['Product Code'] || "",
-            lotNo: row.lotNo || row['Lot No'] || row.lot || row.Lot || "",
-            gb: parseDecimal(row.gb || row.GB || row.Gb),
-            // Always generate unique ID with our own logic, ignore any provided value
+            prodCode: row.prodCode || row['Prod. Co*'] || row['Prod. Code'] || row['Prod Code'] || row.productCode || row['Product Code'] || "",
+            
+            // Generate unique ID
             uniqueId: generateUniqueId(),
             submittedBy: req.user.id,
           };
 
-          // Skip rows with missing required fields
-          // if (!productData.company || !productData.brand || !productData.product || !productData.description) {
-          //   skipped++;
-          //   errors.push(`Row ${i + 1}: Missing required fields (company, brand, product, description)`);
-          //   continue;
-          // }
+          console.log("✨ Mapped product data:");
+          console.log(`   Company: "${productData.company}"`);
+          console.log(`   Brand: "${productData.brand}"`);
+          console.log(`   Product: "${productData.product}"`);
+          console.log(`   Description: "${productData.description}"`);
+          console.log(`   MRP: "${productData.mrp}"`);
+          console.log(`   Net Qty: "${productData.netQty}"`);
+          console.log(`   Lot/Batch: "${productData.lotBatch}"`);
+          console.log(`   Pack Size: "${productData.packSize}"`);
+          console.log(`   Mfg Date: "${productData.mfgDate}"`);
+          console.log(`   Expiry Date: "${productData.expiryDate}"`);
+          console.log(`   Date of Test: "${productData.dateOfTest}"`);
+          console.log(`   Market Code: "${productData.marketCode}"`);
+          console.log(`   Prod Code: "${productData.prodCode}"`);
+          console.log(`   Unique ID: "${productData.uniqueId}"`);
 
+          // Basic validation before schema validation
+          if (!productData.product) {
+            console.log(`⚠️  Row ${i + 1}: Missing product name, using crop name or default`);
+            productData.product = row['Crop Name'] || `Product ${i + 1}`;
+          }
+
+          console.log(`🔍 Validating row ${i + 1} against schema...`);
+          
           // Validate and create product
           const validatedData = insertProductSchema.parse(productData);
+          console.log(`✅ Row ${i + 1}: Schema validation passed`);
+          
           await storage.createProduct(validatedData);
+          console.log(`✅ Row ${i + 1}: Product created successfully`);
+          
           imported++;
 
         } catch (error) {
+          console.log(`❌ Row ${i + 1}: Error occurred -`, error instanceof Error ? error.message : 'Unknown error');
           skipped++;
           errors.push(`Row ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
+
+      console.log("\n📊 Import Summary:");
+      console.log(`✅ Successfully imported: ${imported} products`);
+      console.log(`⚠️  Skipped: ${skipped} products`);
+      console.log(`📝 Total processed: ${products.length} rows`);
+      console.log("🔚 Import process completed");
 
       res.json({
         message: "Import completed",
@@ -411,7 +527,7 @@ export function registerRoutes(app: Express): Server {
       });
 
     } catch (error) {
-      console.error("Import error:", error);
+      console.error("❌ Import error:", error);
       res.status(500).json({ message: "Failed to import products" });
     }
   });
