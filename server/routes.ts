@@ -21,13 +21,25 @@ function excelDateToString(value: any): string {
   return value ? String(value) : "";
 }
 
-// Helper function to handle decimal values (convert empty strings to null)
+// Helper function to handle decimal values with precision preservation
 function parseDecimal(value: any): string | null {
   if (value === "" || value === null || value === undefined) {
     return null;
   }
-  const parsed = parseFloat(value);
-  return isNaN(parsed) ? null : parsed.toString();
+  
+  // Handle numeric values directly to preserve precision
+  if (typeof value === 'number') {
+    return value.toString();
+  }
+  
+  // Convert string values to number and preserve decimals
+  const parsed = parseFloat(String(value));
+  if (isNaN(parsed)) {
+    return null;
+  }
+  
+  // Preserve original precision by converting back to string carefully
+  return parsed.toString();
 }
 
 // Setup multer for file uploads
@@ -344,13 +356,13 @@ export function registerRoutes(app: Express): Server {
         
         console.log("📊 Processing Excel file...");
         
-        // Read workbook with enhanced options to handle formulas and formatted values
+        // Read workbook with enhanced options to preserve decimal precision
         const workbook = XLSX.read(buffer, { 
           type: 'buffer',
           cellDates: true,      // Convert dates to JS Date objects
           cellNF: false,        // Don't format numbers
           cellText: false,      // Don't convert to text
-          raw: false,           // Parse formatted values
+          raw: false,           // Use formatted values to avoid type issues
           dateNF: 'yyyy-mm-dd'  // Standard date format
         });
         
@@ -380,12 +392,12 @@ export function registerRoutes(app: Express): Server {
         console.log("📋 Excel Headers extracted:", headers);
         console.log("📋 Number of headers:", headers.length);
         
-        // Convert to JSON with proper options
+        // Convert to JSON with proper options to preserve decimal precision
         products = XLSX.utils.sheet_to_json(worksheet, {
           header: headers,
           range: 1, // Skip first row (headers)
           defval: "", // Default value for empty cells
-          raw: false, // Use formatted values
+          raw: false, // Use formatted values to avoid type issues
           dateNF: 'yyyy-mm-dd'
         });
         

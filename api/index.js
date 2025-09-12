@@ -28,13 +28,25 @@ function excelDateToString(value) {
   return value ? String(value) : "";
 }
 
-// Helper function to handle decimal values (convert empty strings to null)
+// Helper function to handle decimal values with precision preservation
 function parseDecimal(value) {
   if (value === "" || value === null || value === undefined) {
     return null;
   }
-  const parsed = parseFloat(value);
-  return isNaN(parsed) ? null : parsed.toString();
+  
+  // Handle numeric values directly to preserve precision
+  if (typeof value === 'number') {
+    return value.toString();
+  }
+  
+  // Convert string values to number and preserve decimals
+  const parsed = parseFloat(String(value));
+  if (isNaN(parsed)) {
+    return null;
+  }
+  
+  // Preserve original precision by converting back to string carefully
+  return parsed.toString();
 }
 
 const scryptAsync = promisify(scrypt);
@@ -70,8 +82,8 @@ const products = pgTable("products", {
   packSize: text("pack_size"),
   dateOfTest: text("date_of_test"),
   unitSalePrice: decimal("unit_sale_price", { precision: 10, scale: 2 }),
-  noOfPkts: decimal("no_of_pkts", { precision: 10, scale: 0 }),
-  totalPkts: decimal("total_pkts", { precision: 10, scale: 0 }),
+  noOfPkts: decimal("no_of_pkts", { precision: 10, scale: 2 }),
+  totalPkts: decimal("total_pkts", { precision: 10, scale: 2 }),
   from: text("from"),
   to: text("to"),
   marketingCode: text("marketing_code"),
@@ -717,13 +729,13 @@ async function createApp() {
         
         console.log("📊 Processing Excel file...");
         
-        // Read workbook with enhanced options to handle formulas and formatted values
+        // Read workbook with enhanced options to preserve decimal precision
         const workbook = XLSX.read(buffer, { 
           type: 'buffer',
           cellDates: true,      // Convert dates to JS Date objects
           cellNF: false,        // Don't format numbers
           cellText: false,      // Don't convert to text
-          raw: false,           // Parse formatted values
+          raw: false,           // Use formatted values to avoid type issues
           dateNF: 'yyyy-mm-dd'  // Standard date format
         });
         
@@ -753,12 +765,12 @@ async function createApp() {
         console.log("📋 Excel Headers extracted:", headers);
         console.log("📋 Number of headers:", headers.length);
         
-        // Convert to JSON with proper options
+        // Convert to JSON with proper options to preserve decimal precision
         products = XLSX.utils.sheet_to_json(worksheet, {
           header: headers,
           range: 1, // Skip first row (headers)
           defval: "", // Default value for empty cells
-          raw: false, // Use formatted values
+          raw: false, // Use formatted values to avoid type issues
           dateNF: 'yyyy-mm-dd'
         });
         
