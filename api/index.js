@@ -841,10 +841,10 @@ async function createApp() {
             from: row.from || row.From || row.FROM || null,
             to: row.to || row.To || row.TO || null,
             
-            // Codes - EXACT MAPPING FROM EXCEL
+            // Codes - CONSOLIDATED MAPPING (Marketing Code and Market Code treated as same)
             marketingCode: row['Market Code FF'] || row.marketingCode || row['Marketing Code'] || row.code || row.Code || null,
             unitOfMeasureCode: row.unitOfMeasureCode || row['Unit of Measure Code'] || row.unit || row.Unit || null,
-            marketCode: row.marketCode || row['Market Code'] || row.market || row.Market || null,
+            marketCode: row.marketCode || row['Market Code'] || row.market || row.Market || row['Market Code FF'] || row.marketingCode || row['Marketing Code'] || row.code || row.Code || null,
             prodCode: row['Production Code FF'] || row.prodCode || row['Prod. Co*'] || row['Prod. Code'] || row['Prod Code'] || row.productCode || row['Product Code'] || null,
             
             // NEW COLUMNS FROM EXCEL

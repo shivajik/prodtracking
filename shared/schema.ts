@@ -96,6 +96,8 @@ export const insertProductSchema = createInsertSchema(products).omit({
   status: true,
 }).extend({
   submittedBy: z.string().optional(),
+  company: z.string().optional(),
+  brand: z.string().optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

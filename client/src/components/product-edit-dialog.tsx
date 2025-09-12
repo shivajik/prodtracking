@@ -29,8 +29,8 @@ const cropMarketData = {
 
 const editProductSchema = z.object({
   // Required fields
-  company: z.string().min(1, "Company is required"),
-  brand: z.string().min(1, "Brand is required"),
+  company: z.string().optional(),
+  brand: z.string().optional(),
   cropName: z.string().min(1, "Crop name is required"),
   marketCode: z.string().min(1, "Market code is required"),
   lotNo: z.string().min(1, "Lot number is required"),
@@ -229,7 +229,7 @@ export default function ProductEditDialog({
                 name="company"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Company *</FormLabel>
+                    <FormLabel>Company</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-company" />
                     </FormControl>
@@ -243,7 +243,7 @@ export default function ProductEditDialog({
                 name="brand"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Brand *</FormLabel>
+                    <FormLabel>Brand</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-brand" />
                     </FormControl>
