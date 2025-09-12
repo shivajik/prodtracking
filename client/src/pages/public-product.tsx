@@ -153,6 +153,7 @@ export default function PublicProduct() {
             <CardTitle>Product Details</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Basic Product Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div className="bg-muted rounded-lg p-4">
                 <h4 className="font-semibold text-foreground mb-2">Brand</h4>
@@ -165,27 +166,194 @@ export default function PublicProduct() {
               </div>
               
               <div className="bg-muted rounded-lg p-4">
+                <h4 className="font-semibold text-foreground mb-2">Pack Size</h4>
+                <p className="text-muted-foreground" data-testid="text-pack-size">{product.packSize || "N/A"}</p>
+              </div>
+              
+              {product.location && (
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">Location</h4>
+                  <p className="text-muted-foreground" data-testid="text-location">{product.location}</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Pricing Information */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="bg-muted rounded-lg p-4">
+                <h4 className="font-semibold text-foreground mb-2">MRP (₹)</h4>
+                <p className="text-muted-foreground text-lg font-semibold" data-testid="text-mrp-detailed">₹{product.mrp}</p>
+              </div>
+              
+              {product.unitSalePrice && (
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">Unit Sale Price (₹)</h4>
+                  <p className="text-muted-foreground" data-testid="text-unit-sale-price">₹{product.unitSalePrice}</p>
+                </div>
+              )}
+              
+              {(product.noOfPkts || product.totalPkts) && (
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">Package Count</h4>
+                  <p className="text-muted-foreground" data-testid="text-package-count">
+                    {product.noOfPkts && `${product.noOfPkts} packets`}
+                    {product.noOfPkts && product.totalPkts && " / "}
+                    {product.totalPkts && `${product.totalPkts} total`}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {/* Batch and Lot Information */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="bg-muted rounded-lg p-4">
                 <h4 className="font-semibold text-foreground mb-2">Batch No.</h4>
                 <p className="text-muted-foreground font-mono" data-testid="text-batch-no">{product.lotBatch}</p>
               </div>
               
+              {product.lotNo && (
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">Lot No.</h4>
+                  <p className="text-muted-foreground font-mono" data-testid="text-lot-no">{product.lotNo}</p>
+                </div>
+              )}
+              
+              {product.stackNo && (
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">Stack No.</h4>
+                  <p className="text-muted-foreground font-mono" data-testid="text-stack-no">{product.stackNo}</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Date Information */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="bg-muted rounded-lg p-4">
                 <h4 className="font-semibold text-foreground mb-2">Manufacturing Date</h4>
                 <p className="text-muted-foreground" data-testid="text-mfg-date">{product.mfgDate}</p>
               </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
               <div className="bg-muted rounded-lg p-4">
                 <h4 className="font-semibold text-foreground mb-2">Expiry Date</h4>
                 <p className="text-muted-foreground" data-testid="text-expiry-date">{product.expiryDate}</p>
               </div>
               
+              {product.dateOfTest && (
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">Date of Test</h4>
+                  <p className="text-muted-foreground" data-testid="text-date-of-test">{product.dateOfTest}</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Marketing and Distribution */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="bg-muted rounded-lg p-4">
                 <h4 className="font-semibold text-foreground mb-2">Marketed By</h4>
                 <p className="text-muted-foreground" data-testid="text-marketed-by">{product.marketedBy}</p>
               </div>
+              
+              {(product.from || product.to) && (
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">Distribution Range</h4>
+                  <p className="text-muted-foreground" data-testid="text-distribution-range">
+                    {product.from && `From: ${product.from}`}
+                    {product.from && product.to && " | "}
+                    {product.to && `To: ${product.to}`}
+                  </p>
+                </div>
+              )}
             </div>
+            
+            {/* Product Codes */}
+            {(product.marketingCode || product.unitOfMeasureCode || product.marketCode || product.prodCode || product.stageCode) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                {product.marketingCode && (
+                  <div className="bg-muted rounded-lg p-4">
+                    <h4 className="font-semibold text-foreground mb-2">Marketing Code</h4>
+                    <p className="text-muted-foreground font-mono" data-testid="text-marketing-code">{product.marketingCode}</p>
+                  </div>
+                )}
+                
+                {product.marketCode && (
+                  <div className="bg-muted rounded-lg p-4">
+                    <h4 className="font-semibold text-foreground mb-2">Market Code</h4>
+                    <p className="text-muted-foreground font-mono" data-testid="text-market-code">{product.marketCode}</p>
+                  </div>
+                )}
+                
+                {product.prodCode && (
+                  <div className="bg-muted rounded-lg p-4">
+                    <h4 className="font-semibold text-foreground mb-2">Product Code</h4>
+                    <p className="text-muted-foreground font-mono" data-testid="text-prod-code">{product.prodCode}</p>
+                  </div>
+                )}
+                
+                {product.unitOfMeasureCode && (
+                  <div className="bg-muted rounded-lg p-4">
+                    <h4 className="font-semibold text-foreground mb-2">Unit of Measure Code</h4>
+                    <p className="text-muted-foreground font-mono" data-testid="text-unit-of-measure-code">{product.unitOfMeasureCode}</p>
+                  </div>
+                )}
+                
+                {product.stageCode && (
+                  <div className="bg-muted rounded-lg p-4">
+                    <h4 className="font-semibold text-foreground mb-2">Stage Code</h4>
+                    <p className="text-muted-foreground font-mono" data-testid="text-stage-code">{product.stageCode}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Quality Information */}
+            {(product.normalGermination || product.gerAve || product.gotPercent || product.gotAve || product.gb || product.remainingQuantity) && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Quality & Testing Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                  {product.normalGermination && (
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="font-semibold text-foreground mb-2">Normal Germination</h4>
+                      <p className="text-muted-foreground" data-testid="text-normal-germination">{product.normalGermination}%</p>
+                    </div>
+                  )}
+                  
+                  {product.gerAve && (
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="font-semibold text-foreground mb-2">Germination Average</h4>
+                      <p className="text-muted-foreground" data-testid="text-ger-ave">{product.gerAve}</p>
+                    </div>
+                  )}
+                  
+                  {product.gb && (
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="font-semibold text-foreground mb-2">GB</h4>
+                      <p className="text-muted-foreground" data-testid="text-gb">{product.gb}</p>
+                    </div>
+                  )}
+                  
+                  {product.gotPercent && (
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="font-semibold text-foreground mb-2">GOT Percent</h4>
+                      <p className="text-muted-foreground" data-testid="text-got-percent">{product.gotPercent}%</p>
+                    </div>
+                  )}
+                  
+                  {product.gotAve && (
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="font-semibold text-foreground mb-2">GOT Average</h4>
+                      <p className="text-muted-foreground" data-testid="text-got-ave">{product.gotAve}</p>
+                    </div>
+                  )}
+                  
+                  {product.remainingQuantity && (
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="font-semibold text-foreground mb-2">Remaining Quantity</h4>
+                      <p className="text-muted-foreground" data-testid="text-remaining-quantity">{product.remainingQuantity}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -399,7 +399,7 @@ export default function AdminDashboard() {
       const workbook = new Workbook();
       const worksheet = workbook.addWorksheet('Products');
 
-      // Define headers with proper styling
+      // Define headers with proper styling - including all new fields
       const headers = [
         "Unique ID",
         "Product Name", 
@@ -407,14 +407,37 @@ export default function AdminDashboard() {
         "Company",
         "Description",
         "MRP (₹)",
+        "Unit Sale Price (₹)",
         "Net Quantity",
+        "Pack Size",
+        "No. of Packets",
+        "Total Packets",
         "Lot/Batch",
+        "Lot No",
+        "Stack No",
         "Manufacturing Date",
         "Expiry Date",
+        "Date of Test",
         "Customer Care",
         "Email",
         "Company Address",
         "Marketed By",
+        "Brochure URL",
+        "Brochure Filename",
+        "Location",
+        "From",
+        "To",
+        "Marketing Code",
+        "Unit of Measure Code",
+        "Market Code",
+        "Product Code",
+        "Stage Code",
+        "Remaining Quantity",
+        "Normal Germination (%)",
+        "Germination Average",
+        "GB",
+        "GOT Percent",
+        "GOT Average",
         "Status",
         "Submission Date",
         "Approval Date",
@@ -442,8 +465,8 @@ export default function AdminDashboard() {
         };
       });
 
-      // Set column widths for better spacing
-      const columnWidths = [15, 25, 20, 25, 40, 12, 15, 15, 18, 15, 20, 25, 35, 25, 12, 15, 15, 30, 20, 40];
+      // Set column widths for better spacing - updated for all new columns
+      const columnWidths = [15, 25, 20, 25, 40, 12, 12, 15, 12, 12, 12, 15, 15, 15, 18, 15, 15, 20, 25, 35, 25, 30, 25, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 12, 15, 15, 12, 15, 15, 30, 20, 40];
       columnWidths.forEach((width, index) => {
         worksheet.getColumn(index + 1).width = width;
       });
@@ -463,14 +486,37 @@ export default function AdminDashboard() {
           product.company || "",
           product.description || "",
           product.mrp || "",
+          product.unitSalePrice || "",
           product.netQty || "",
+          product.packSize || "",
+          product.noOfPkts || "",
+          product.totalPkts || "",
           product.lotBatch || "",
+          product.lotNo || "",
+          product.stackNo || "",
           product.mfgDate || "",
           product.expiryDate || "",
+          product.dateOfTest || "",
           product.customerCare || "",
           product.email || "",
           product.companyAddress || "",
           product.marketedBy || "",
+          product.brochureUrl || "",
+          product.brochureFilename || "",
+          product.location || "",
+          product.from || "",
+          product.to || "",
+          product.marketingCode || "",
+          product.unitOfMeasureCode || "",
+          product.marketCode || "",
+          product.prodCode || "",
+          product.stageCode || "",
+          product.remainingQuantity || "",
+          product.normalGermination || "",
+          product.gerAve || "",
+          product.gb || "",
+          product.gotPercent || "",
+          product.gotAve || "",
           product.status || "",
           product.submissionDate ? new Date(product.submissionDate).toLocaleDateString() : "",
           product.approvalDate ? new Date(product.approvalDate).toLocaleDateString() : "",
@@ -503,9 +549,9 @@ export default function AdminDashboard() {
               extension: 'png',
             });
 
-            // Add image to the QR Code column (column 19, row index + 2 because header is row 1)
+            // Add image to the QR Code column (column 42, row index + 2 because header is row 1)
             worksheet.addImage(imageId, {
-              tl: { col: 18, row: i + 1 }, // 0-indexed column, 0-indexed row
+              tl: { col: 41, row: i + 1 }, // 0-indexed column, 0-indexed row (QR Code is now column 42)
               ext: { width: 80, height: 80 }
             });
 
@@ -514,12 +560,12 @@ export default function AdminDashboard() {
           } catch (error) {
             console.error('Error adding QR code image:', error);
             // Fallback to text if image fails
-            row.getCell(19).value = "QR Code Error";
+            row.getCell(42).value = "QR Code Error";
           }
         }
 
         // Make tracking URL a clickable hyperlink
-        const trackingCell = row.getCell(20);
+        const trackingCell = row.getCell(43);
         trackingCell.value = {
           text: trackingUrl,
           hyperlink: trackingUrl
