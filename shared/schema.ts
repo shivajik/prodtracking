@@ -44,6 +44,15 @@ export const products = pgTable("products", {
   prodCode: text("prod_code"),
   lotNo: text("lot_no"),
   gb: decimal("gb", { precision: 10, scale: 2 }),
+  // New columns for Excel import
+  location: text("location"),
+  stageCode: text("stage_code"),
+  remainingQuantity: decimal("remaining_quantity", { precision: 15, scale: 2 }),
+  stackNo: text("stack_no"),
+  normalGermination: decimal("normal_germination", { precision: 5, scale: 2 }),
+  gerAve: decimal("ger_ave", { precision: 15, scale: 2 }),
+  gotPercent: decimal("got_percent", { precision: 15, scale: 8 }),
+  gotAve: decimal("got_ave", { precision: 15, scale: 4 }),
   status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
   submissionDate: timestamp("submission_date").defaultNow(),
   approvalDate: timestamp("approval_date"),

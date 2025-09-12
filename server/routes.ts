@@ -423,49 +423,66 @@ export function registerRoutes(app: Express): Server {
           // Enhanced column mapping with exact matches from your Excel structure
           console.log("🗂️ Mapping Excel columns to schema fields...");
           
+          // Skip empty rows - check if essential fields are missing
+          const hasEssentialData = row['Crop Name'] || row['Location'] || row['Lot No.'] || row['Production Code FF'];
+          if (!hasEssentialData) {
+            console.log(`⚠️  Row ${i + 1}: Skipping empty row - no essential data found`);
+            skipped++;
+            continue;
+          }
+
           const productData = {
-            // Core product info
-            company: row.company || row.Company || row.COMPANY || "Green Gold Seeds",
-            brand: row.brand || row.Brand || row.BRAND || "Green Gold",
-            product: row.product || row.Product || row.PRODUCT || row['Product Name'] || row['Crop Name'] || "",
-            description: row.description || row.Description || row.DESCRIPTION || 
-                        `${row['Crop Name'] || ''} - ${row['Market Code'] || ''} - ${row['Prod. Co*'] || ''}`.trim(),
+            // Core product info - NO FALLBACKS
+            company: row.company || row.Company || row.COMPANY || null,
+            brand: row.brand || row.Brand || row.BRAND || null,
+            product: row['Crop Name'] || row.product || row.Product || row.PRODUCT || row['Product Name'] || null,
+            description: row.description || row.Description || row.DESCRIPTION || null,
             
-            // Pricing info
-            mrp: parseDecimal(row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price || row['Unit Sale Price']),
+            // Pricing info - NO FALLBACKS  
+            mrp: parseDecimal(row.mrp || row.MRP || row['MRP (₹)'] || row.price || row.Price),
             unitSalePrice: parseDecimal(row.unitSalePrice || row['Unit Sale Price'] || row.unitPrice || row['Unit Price']),
             
-            // Quantity and packaging
-            netQty: row.netQty || row['Net Qty'] || row['Net Quantity'] || row.quantity || row.Quantity || row['Qty(kg)'] || "",
-            packSize: row.packSize || row['Pack Size'] || row.size || row.Size || "",
-            noOfPkts: parseDecimal(row.noOfPkts || row['No Of Pkts'] || row['No of Pkts'] || row.packets || row.Packets || row['No of Pkts']),
+            // Quantity and packaging - NO FALLBACKS
+            netQty: row.netQty || row['Net Qty'] || row['Net Quantity'] || row.quantity || row.Quantity || row['Qty(kg)'] || null,
+            packSize: row.packSize || row['Pack Size'] || row.size || row.Size || null,
+            noOfPkts: parseDecimal(row['No. of Bags'] || row.noOfPkts || row['No Of Pkts'] || row['No of Pkts'] || row.packets || row.Packets),
             totalPkts: parseDecimal(row.totalPkts || row['Total Pkts'] || row.totalPackets || row['Total Packets'] || row['Total Pkg']),
             
-            // Batch and lot info
-            lotBatch: row.lotBatch || row['Lot/Batch'] || row['Lot Batch'] || row.batch || row.Batch || row['New Lot No'] || row['Lot No.'] || row['Lot No'] || "",
-            lotNo: row.lotNo || row['Lot No'] || row['Lot No.'] || row.lot || row.Lot || "",
+            // Batch and lot info - NO FALLBACKS
+            lotBatch: row.lotBatch || row['Lot/Batch'] || row['Lot Batch'] || row.batch || row.Batch || row['New Lot No'] || null,
+            lotNo: row['Lot No.'] || row.lotNo || row['Lot No'] || row.lot || row.Lot || null,
             gb: parseDecimal(row.gb || row.GB || row.Gb),
             
-            // Dates
+            // Dates - NO FALLBACKS
             mfgDate: excelDateToString(row.mfgDate || row['Mfg Date'] || row['Manufacturing Date'] || row['Date of Packing'] || row['Date Of Packing']),
             expiryDate: excelDateToString(row.expiryDate || row['Expiry Date'] || row['Valid Up To'] || row['Valid Upto']),
-            dateOfTest: excelDateToString(row.dateOfTest || row['Date Of Test'] || row.testDate || row['Test Date']),
+            dateOfTest: excelDateToString(row['Date of Test'] || row.dateOfTest || row['Date Of Test'] || row.testDate || row['Test Date']),
             
-            // Contact and company info
-            customerCare: row.customerCare || row['Customer Care'] || row.support || row.Support || "",
-            email: row.email || row.Email || row.EMAIL || "",
-            companyAddress: row.companyAddress || row['Company Address'] || row.address || row.Address || "",
-            marketedBy: row.marketedBy || row['Marketed By'] || row.marketer || row.Marketer || "",
+            // Contact and company info - NO FALLBACKS
+            customerCare: row.customerCare || row['Customer Care'] || row.support || row.Support || null,
+            email: row.email || row.Email || row.EMAIL || null,
+            companyAddress: row.companyAddress || row['Company Address'] || row.address || row.Address || null,
+            marketedBy: row.marketedBy || row['Marketed By'] || row.marketer || row.Marketer || null,
             
-            // Range and location
-            from: row.from || row.From || row.FROM || "",
-            to: row.to || row.To || row.TO || "",
+            // Range and location - NO FALLBACKS
+            from: row.from || row.From || row.FROM || null,
+            to: row.to || row.To || row.TO || null,
             
-            // Codes
-            marketingCode: row.marketingCode || row['Marketing Code'] || row.code || row.Code || "",
-            unitOfMeasureCode: row.unitOfMeasureCode || row['Unit of Measure Code'] || row.unit || row.Unit || "",
-            marketCode: row.marketCode || row['Market Code'] || row.market || row.Market || "",
-            prodCode: row.prodCode || row['Prod. Co*'] || row['Prod. Code'] || row['Prod Code'] || row.productCode || row['Product Code'] || "",
+            // Codes - EXACT MAPPING FROM EXCEL
+            marketingCode: row['Market Code FF'] || row.marketingCode || row['Marketing Code'] || row.code || row.Code || null,
+            unitOfMeasureCode: row.unitOfMeasureCode || row['Unit of Measure Code'] || row.unit || row.Unit || null,
+            marketCode: row.marketCode || row['Market Code'] || row.market || row.Market || null,
+            prodCode: row['Production Code FF'] || row.prodCode || row['Prod. Co*'] || row['Prod. Code'] || row['Prod Code'] || row.productCode || row['Product Code'] || null,
+            
+            // NEW COLUMNS FROM EXCEL
+            location: row['Location'] || row.location || null,
+            stageCode: row['Stage Code'] || row.stageCode || null,
+            remainingQuantity: parseDecimal(row['Remaining Quantity'] || row.remainingQuantity),
+            stackNo: row['STACK NO'] || row.stackNo || null,
+            normalGermination: parseDecimal(row['Normal Germination %'] || row.normalGermination),
+            gerAve: parseDecimal(row['GER AVE'] || row.gerAve),
+            gotPercent: parseDecimal(row['GOT %'] || row.gotPercent),
+            gotAve: parseDecimal(row['GOT AVE'] || row.gotAve),
             
             // Generate unique ID
             uniqueId: generateUniqueId(),
@@ -486,12 +503,22 @@ export function registerRoutes(app: Express): Server {
           console.log(`   Date of Test: "${productData.dateOfTest}"`);
           console.log(`   Market Code: "${productData.marketCode}"`);
           console.log(`   Prod Code: "${productData.prodCode}"`);
+          console.log(`   Location: "${productData.location}"`);
+          console.log(`   Stage Code: "${productData.stageCode}"`);
+          console.log(`   Remaining Quantity: "${productData.remainingQuantity}"`);
+          console.log(`   Stack No: "${productData.stackNo}"`);
+          console.log(`   Normal Germination %: "${productData.normalGermination}"`);
+          console.log(`   GER AVE: "${productData.gerAve}"`);
+          console.log(`   GOT %: "${productData.gotPercent}"`);
+          console.log(`   GOT AVE: "${productData.gotAve}"`);
           console.log(`   Unique ID: "${productData.uniqueId}"`);
 
-          // Basic validation before schema validation
+          // Basic validation - NO FALLBACKS ALLOWED
           if (!productData.product) {
-            console.log(`⚠️  Row ${i + 1}: Missing product name, using crop name or default`);
-            productData.product = row['Crop Name'] || `Product ${i + 1}`;
+            console.log(`❌ Row ${i + 1}: Missing product name, skipping row`);
+            skipped++;
+            errors.push(`Row ${i + 1}: Missing product name (Crop Name)`);
+            continue;
           }
 
           console.log(`🔍 Validating row ${i + 1} against schema...`);
