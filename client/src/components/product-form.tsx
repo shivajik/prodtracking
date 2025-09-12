@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -15,47 +16,87 @@ import { z } from "zod";
 import { CloudUpload, Send, RotateCcw, Upload } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 
+// Crop and Market Code data mapping
+const cropMarketData = {
+  "AGGER": ["AGG-74"],
+  "BAJRA": ["BUJ-78"],
+  "BARLEY": ["BAR-73"],
+  "BENDI": ["BEN-90"],
+  "BLACKGRAM": ["BLA-72"],
+  "BOTTLE GOURD": ["BOT-75"],
+  "BRINJAL": ["BRI-77"],
+  "CHILLI": ["CHI-79"],
+  "CLUSTER BEAN": ["CLU-71"],
+  "CORIANDER": ["COR-70"],
+  "COTTON": ["CTN-01", "CTN-02", "CTN-03", "CTN-04"],
+  "CUCAMBER": ["CUC-81"],
+  "CUMIN": ["CUM-76"],
+  "FENUGREEK": ["FEN-83"],
+  "FIELD PEA": ["FIE-82"],
+  "GARDEN PEA": ["GAR-84"],
+  "GREEN BEAN": ["GRE-85"],
+  "JOWER": ["JOW-86"],
+  "KENAF": ["KEN-87"],
+  "MAIZE": ["MZE-01", "MZE-02", "MZE-03"],
+  "MUSTARD": ["MUS-88"],
+  "OKRA": ["OKR-89"],
+  "PAPAYA": ["PAP-91"],
+  "PEARL MILLET": ["PEA-92"],
+  "REDGRAM": ["RED-93"],
+  "RICE": ["RIC-01", "RIC-02", "RIC-03", "RIC-04", "RIC-05"],
+  "RIDGE GOURD": ["RID-94"],
+  "SAFFLOWER": ["SAF-95"],
+  "SESAME": ["SES-96"],
+  "SNAKE GOURD": ["SNA-97"],
+  "SORGHUM": ["SOR-98"],
+  "SOYBEAN": ["SOY-99"],
+  "SUNFLOWER": ["SUN-00"],
+  "TOMATO": ["TOM-01"],
+  "WATERMELON": ["WAT-02"],
+  "WHEAT": ["WHT-01", "WHT-02", "WHT-03"]
+};
+
 const productFormSchema = insertProductSchema.omit({
   submittedBy: true,
 }).extend({
-  // Override all optional string fields to be required strings for the form
-  company: z.string().default(""),
-  brand: z.string().default(""),
-  product: z.string().default(""),
-  description: z.string().default(""),
-  mrp: z.string().default(""),
-  netQty: z.string().default(""),
-  lotBatch: z.string().default(""),
-  mfgDate: z.string().default(""),
-  expiryDate: z.string().default(""),
-  uniqueId: z.string().default(""),
-  customerCare: z.string().default(""),
-  email: z.string().default(""),
-  companyAddress: z.string().default(""),
-  marketedBy: z.string().default(""),
-  brochureUrl: z.string().default(""),
-  brochureFilename: z.string().default(""),
-  packSize: z.string().default(""),
-  dateOfTest: z.string().default(""),
-  unitSalePrice: z.string().default(""),
-  noOfPkts: z.string().default(""),
-  totalPkts: z.string().default(""),
-  from: z.string().default(""),
-  to: z.string().default(""),
-  marketingCode: z.string().default(""),
-  unitOfMeasureCode: z.string().default(""),
-  marketCode: z.string().default(""),
-  prodCode: z.string().default(""),
-  lotNo: z.string().default(""),
-  gb: z.string().default(""),
-  location: z.string().default(""),
-  stageCode: z.string().default(""),
-  remainingQuantity: z.string().default(""),
-  stackNo: z.string().default(""),
-  normalGermination: z.string().default(""),
-  gerAve: z.string().default(""),
-  gotPercent: z.string().default(""),
-  gotAve: z.string().default(""),
+  // Required fields
+  company: z.string().min(1, "Company is required"),
+  brand: z.string().min(1, "Brand is required"),
+  cropName: z.string().min(1, "Crop name is required"),
+  // All other fields are optional
+  description: z.string().optional(),
+  mrp: z.string().optional(),
+  netQty: z.string().optional(),
+  lotBatch: z.string().optional(),
+  mfgDate: z.string().optional(),
+  expiryDate: z.string().optional(),
+  uniqueId: z.string().optional(),
+  customerCare: z.string().optional(),
+  email: z.string().optional(),
+  companyAddress: z.string().optional(),
+  marketedBy: z.string().optional(),
+  brochureUrl: z.string().optional(),
+  brochureFilename: z.string().optional(),
+  packSize: z.string().optional(),
+  dateOfTest: z.string().optional(),
+  unitSalePrice: z.string().optional(),
+  noOfPkts: z.string().optional(),
+  totalPkts: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  unitOfMeasureCode: z.string().optional(),
+  marketCode: z.string().optional(),
+  prodCode: z.string().optional(),
+  lotNo: z.string().optional(),
+  gb: z.string().optional(),
+  location: z.string().optional(),
+  stageCode: z.string().optional(),
+  remainingQuantity: z.string().optional(),
+  stackNo: z.string().optional(),
+  normalGermination: z.string().optional(),
+  gerAve: z.string().optional(),
+  gotPercent: z.string().optional(),
+  gotAve: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -69,13 +110,15 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
   const [file, setFile] = useState<File | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [selectedCrop, setSelectedCrop] = useState<string>("");
+  const [availableMarketCodes, setAvailableMarketCodes] = useState<string[]>([]);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       company: "",
       brand: "",
-      product: "",
+      cropName: "",
       description: "",
       mrp: "",
       netQty: "",
@@ -96,7 +139,6 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
       totalPkts: "",
       from: "",
       to: "",
-      marketingCode: "",
       unitOfMeasureCode: "",
       marketCode: "",
       prodCode: "",
@@ -113,12 +155,33 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
     },
   });
 
+  // Update available market codes when crop changes
+  useEffect(() => {
+    if (selectedCrop && cropMarketData[selectedCrop as keyof typeof cropMarketData]) {
+      setAvailableMarketCodes(cropMarketData[selectedCrop as keyof typeof cropMarketData]);
+    } else {
+      setAvailableMarketCodes([]);
+    }
+  }, [selectedCrop]);
+
+  const handleCropChange = (cropName: string) => {
+    setSelectedCrop(cropName);
+    form.setValue("cropName", cropName);
+    // Reset market code when crop changes
+    form.setValue("marketCode", "");
+  };
+
   const submitProductMutation = useMutation({
     mutationFn: async (data: ProductFormData) => {
       const formData = new FormData();
       
+      // Process each field, mapping cropName to product for backward compatibility
       Object.entries(data).forEach(([key, value]) => {
-        formData.append(key, value?.toString() || "");
+        if (key === "cropName") {
+          formData.append("product", value?.toString() || "");
+        } else {
+          formData.append(key, value?.toString() || "");
+        }
       });
       
       if (file) {
@@ -297,12 +360,23 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               
               <FormField
                 control={form.control}
-                name="product"
+                name="cropName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Product *</FormLabel>
+                    <FormLabel>Crop Name *</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-product" />
+                      <Select value={field.value} onValueChange={handleCropChange}>
+                        <SelectTrigger data-testid="select-crop-name">
+                          <SelectValue placeholder="Select crop name" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(cropMarketData).map((crop) => (
+                            <SelectItem key={crop} value={crop}>
+                              {crop}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -331,7 +405,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description *</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea {...field} rows={3} data-testid="textarea-description" />
                   </FormControl>
@@ -347,7 +421,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="mrp"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>MRP Rs. (Inclusive of All Taxes) *</FormLabel>
+                    <FormLabel>MRP Rs. (Inclusive of All Taxes)</FormLabel>
                     <FormControl>
                       <Input {...field} type="number" step="0.01" data-testid="input-mrp" />
                     </FormControl>
@@ -627,21 +701,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
             </div>
             
             {/* Codes and Technical Information */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <FormField
-                control={form.control}
-                name="marketingCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Marketing Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-marketing-code" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <FormField
                 control={form.control}
                 name="unitOfMeasureCode"
@@ -663,7 +723,18 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   <FormItem>
                     <FormLabel>Market Code</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-market-code" />
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger data-testid="select-market-code">
+                          <SelectValue placeholder="Select market code" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableMarketCodes.map((code) => (
+                            <SelectItem key={code} value={code}>
+                              {code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
