@@ -53,6 +53,7 @@ export const products = pgTable("products", {
   gerAve: decimal("ger_ave", { precision: 15, scale: 2 }),
   gotPercent: decimal("got_percent", { precision: 15, scale: 8 }),
   gotAve: decimal("got_ave", { precision: 15, scale: 4 }),
+  labelNumber: text("label_number"),
   status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
   submissionDate: timestamp("submission_date").defaultNow(),
   approvalDate: timestamp("approval_date"),

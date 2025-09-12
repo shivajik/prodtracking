@@ -28,9 +28,13 @@ const cropMarketData = {
 };
 
 const editProductSchema = z.object({
+  // Required fields
   company: z.string().min(1, "Company is required"),
   brand: z.string().min(1, "Brand is required"),
   cropName: z.string().min(1, "Crop name is required"),
+  marketCode: z.string().min(1, "Market code is required"),
+  lotNo: z.string().min(1, "Lot number is required"),
+  // Optional fields
   description: z.string().optional(),
   mrp: z.string().optional(),
   netQty: z.string().optional(),
@@ -50,9 +54,7 @@ const editProductSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   unitOfMeasureCode: z.string().optional(),
-  marketCode: z.string().optional(),
   prodCode: z.string().optional(),
-  lotNo: z.string().optional(),
   gb: z.string().optional(),
   location: z.string().optional(),
   stageCode: z.string().optional(),
@@ -62,6 +64,7 @@ const editProductSchema = z.object({
   gerAve: z.string().optional(),
   gotPercent: z.string().optional(),
   gotAve: z.string().optional(),
+  labelNumber: z.string().optional(),
 });
 
 type EditProductData = z.infer<typeof editProductSchema>;
@@ -120,6 +123,7 @@ export default function ProductEditDialog({
       gerAve: product.gerAve ? product.gerAve.toString() : "",
       gotPercent: product.gotPercent ? product.gotPercent.toString() : "",
       gotAve: product.gotAve ? product.gotAve.toString() : "",
+      labelNumber: product.labelNumber || "",
     },
   });
 
@@ -170,6 +174,7 @@ export default function ProductEditDialog({
       gerAve: product.gerAve ? product.gerAve.toString() : "",
       gotPercent: product.gotPercent ? product.gotPercent.toString() : "",
       gotAve: product.gotAve ? product.gotAve.toString() : "",
+      labelNumber: product.labelNumber || "",
     });
   }, [product, editForm]);
 
@@ -181,26 +186,26 @@ export default function ProductEditDialog({
   };
 
   const handleSave = (data: EditProductData) => {
-    // Convert string inputs back to numbers for numeric fields
-    const processedData: Partial<Product> = {
-      ...data,
-      // Map cropName back to product field for backward compatibility
-      product: data.cropName,
-      // Convert string fields to numbers where needed, handling empty strings
-      mrp: data.mrp ? parseFloat(data.mrp) : undefined,
-      unitSalePrice: data.unitSalePrice ? parseFloat(data.unitSalePrice) : undefined,
-      noOfPkts: data.noOfPkts ? parseInt(data.noOfPkts, 10) : undefined,
-      totalPkts: data.totalPkts ? parseInt(data.totalPkts, 10) : undefined,
-      gb: data.gb ? parseFloat(data.gb) : undefined,
-      remainingQuantity: data.remainingQuantity ? parseFloat(data.remainingQuantity) : undefined,
-      normalGermination: data.normalGermination ? parseFloat(data.normalGermination) : undefined,
-      gerAve: data.gerAve ? parseFloat(data.gerAve) : undefined,
-      gotPercent: data.gotPercent ? parseFloat(data.gotPercent) : undefined,
-      gotAve: data.gotAve ? parseFloat(data.gotAve) : undefined,
-    };
+    // Extract cropName separately and prepare the rest of the data
+    const { cropName, ...restData } = data;
     
-    // Remove the cropName field since it's mapped to product
-    delete (processedData as any).cropName;
+    // Process the data - decimal fields stay as strings (as per Product schema)
+    const processedData: Partial<Product> = {
+      ...restData,
+      // Map cropName back to product field for backward compatibility
+      product: cropName,
+      // Keep decimal fields as strings but ensure they're properly formatted or undefined
+      mrp: data.mrp && data.mrp.trim() !== '' ? data.mrp : undefined,
+      unitSalePrice: data.unitSalePrice && data.unitSalePrice.trim() !== '' ? data.unitSalePrice : undefined,
+      noOfPkts: data.noOfPkts && data.noOfPkts.trim() !== '' ? data.noOfPkts : undefined,
+      totalPkts: data.totalPkts && data.totalPkts.trim() !== '' ? data.totalPkts : undefined,
+      gb: data.gb && data.gb.trim() !== '' ? data.gb : undefined,
+      remainingQuantity: data.remainingQuantity && data.remainingQuantity.trim() !== '' ? data.remainingQuantity : undefined,
+      normalGermination: data.normalGermination && data.normalGermination.trim() !== '' ? data.normalGermination : undefined,
+      gerAve: data.gerAve && data.gerAve.trim() !== '' ? data.gerAve : undefined,
+      gotPercent: data.gotPercent && data.gotPercent.trim() !== '' ? data.gotPercent : undefined,
+      gotAve: data.gotAve && data.gotAve.trim() !== '' ? data.gotAve : undefined,
+    };
     
     onSave(processedData);
   };
@@ -224,7 +229,7 @@ export default function ProductEditDialog({
                 name="company"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Company</FormLabel>
+                    <FormLabel>Company *</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-company" />
                     </FormControl>
@@ -238,7 +243,7 @@ export default function ProductEditDialog({
                 name="brand"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Brand</FormLabel>
+                    <FormLabel>Brand *</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-brand" />
                     </FormControl>
@@ -252,7 +257,7 @@ export default function ProductEditDialog({
                 name="cropName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Crop Name</FormLabel>
+                    <FormLabel>Crop Name *</FormLabel>
                     <FormControl>
                       <Select value={field.value} onValueChange={handleCropChange}>
                         <SelectTrigger data-testid="select-edit-crop-name">
@@ -335,6 +340,20 @@ export default function ProductEditDialog({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={editForm.control}
+                name="labelNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Label Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-edit-label-number" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
                 name="packSize"
                 render={({ field }) => (
                   <FormItem>
@@ -346,7 +365,9 @@ export default function ProductEditDialog({
                   </FormItem>
                 )}
               />
-              
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={editForm.control}
                 name="noOfPkts"
@@ -383,7 +404,7 @@ export default function ProductEditDialog({
                 name="lotBatch"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lot/Batch Number</FormLabel>
+                    <FormLabel>Lot/Batch Number *</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-lot-batch" />
                     </FormControl>
@@ -397,7 +418,7 @@ export default function ProductEditDialog({
                 name="lotNo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lot No</FormLabel>
+                    <FormLabel>Lot No *</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-lot-no" />
                     </FormControl>
@@ -562,7 +583,7 @@ export default function ProductEditDialog({
                 name="marketCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Market Code</FormLabel>
+                    <FormLabel>Market Code *</FormLabel>
                     <FormControl>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger data-testid="select-edit-market-code">

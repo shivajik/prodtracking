@@ -63,6 +63,8 @@ const productFormSchema = insertProductSchema.omit({
   company: z.string().min(1, "Company is required"),
   brand: z.string().min(1, "Brand is required"),
   cropName: z.string().min(1, "Crop name is required"),
+  marketCode: z.string().min(1, "Market code is required"),
+  lotNo: z.string().min(1, "Lot number is required"),
   // All other fields are optional
   description: z.string().optional(),
   mrp: z.string().optional(),
@@ -85,9 +87,7 @@ const productFormSchema = insertProductSchema.omit({
   from: z.string().optional(),
   to: z.string().optional(),
   unitOfMeasureCode: z.string().optional(),
-  marketCode: z.string().optional(),
   prodCode: z.string().optional(),
-  lotNo: z.string().optional(),
   gb: z.string().optional(),
   location: z.string().optional(),
   stageCode: z.string().optional(),
@@ -97,6 +97,7 @@ const productFormSchema = insertProductSchema.omit({
   gerAve: z.string().optional(),
   gotPercent: z.string().optional(),
   gotAve: z.string().optional(),
+  labelNumber: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -152,6 +153,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
       gerAve: "",
       gotPercent: "",
       gotAve: "",
+      labelNumber: "",
     },
   });
 
@@ -502,6 +504,20 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="labelNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Label Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-label-number" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             
             {/* Batch and Date Information */}
@@ -511,7 +527,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="lotBatch"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lot/Batch No *</FormLabel>
+                    <FormLabel>Lot/Batch No</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-lot-batch" />
                     </FormControl>
@@ -525,7 +541,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="lotNo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lot No</FormLabel>
+                    <FormLabel>Lot No *</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-lot-no" />
                     </FormControl>
@@ -721,7 +737,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="marketCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Market Code</FormLabel>
+                    <FormLabel>Market Code *</FormLabel>
                     <FormControl>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger data-testid="select-market-code">
