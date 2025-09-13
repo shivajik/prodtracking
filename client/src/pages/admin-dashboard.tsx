@@ -242,6 +242,13 @@ export default function AdminDashboard() {
       active: activeTab === "overview",
     },
     {
+      id: "all",
+      label: "All Products",
+      icon: <List className="h-4 w-4" />,
+      onClick: () => setActiveTab("all"),
+      active: activeTab === "all",
+    },
+    {
       id: "pending",
       label: "Pending Products",
       icon: <Clock className="h-4 w-4" />,
@@ -262,13 +269,6 @@ export default function AdminDashboard() {
       icon: <XCircle className="h-4 w-4" />,
       onClick: () => setActiveTab("rejected"),
       active: activeTab === "rejected",
-    },
-    {
-      id: "all",
-      label: "All Products",
-      icon: <List className="h-4 w-4" />,
-      onClick: () => setActiveTab("all"),
-      active: activeTab === "all",
     },
     {
       id: "users",

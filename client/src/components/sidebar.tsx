@@ -90,7 +90,11 @@ export default function Sidebar({
                     "w-full justify-start gap-3 h-10",
                     item.active && "bg-secondary text-secondary-foreground"
                   )}
-                  onClick={item.onClick}
+                  onClick={() => {
+                    item.onClick();
+                    // Auto-close sidebar on mobile/tablet after selecting an item
+                    setIsCollapsed(false);
+                  }}
                   data-testid={`sidebar-${item.id}`}
                 >
                   {item.icon}
