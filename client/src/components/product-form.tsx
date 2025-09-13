@@ -11,93 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useCropNames, useVarietiesForCrop } from "@/hooks/use-crops-varieties";
 import { insertProductSchema } from "@shared/schema";
 import { z } from "zod";
 import { CloudUpload, Send, RotateCcw, Upload } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 
-// Crop and Market Code data mapping
-const cropMarketData = {
-  "Bajra": ["GOLD-28", "GOLD-27", "GOLD-29"],
-  "Bhendi": ["GOLD-207", "GOLD-201"],
-  "Bittergourd": ["GOLD-900 SANIKA", "GOLD-911 SOMMYA", "GOLD-903"],
-  "Bottlegourd": ["GOLD-707 KALYANI"],
-  "Chillies": ["GOLD-504 V-SHIELD", "GOLD-507 VIRAGNI", "GOLD-505 TEJAGNI"],
-  "Clusterbean": ["GOLD-601", "GOLD-602"],
-  "Coriander": ["SUVASINI", "GOLD-225"],
-  "Cotton": [
-    "GOLD-81 NAMASKAR",
-    "GBCH-85 BG II",
-    "GBCH-8888 BG II",
-    "GBCH-185 BG II",
-    "GBCH-9999 (KARTIK)",
-    "GBCH-95 BG II ASHOKA",
-    "GBCH-90 KAVITA BG II",
-    "GBCH-1801 BG II"
-  ],
-  "Cowpea": ["GOLD-309"],
-  "Cucumber": ["GOLD-403"],
-  "Gram": ["GOLD-72", "GOLD-75"],
-  "Green Pea": ["GOLD-10"],
-  "Jowar": ["GOLD-45", "GOLD-54", "GOLD-25 SHEETAL", "GGFSH-103 CHERI GOLD"],
-  "Maize": [
-    "GOLD-1166",
-    "GOLD-1144 ANKUSH",
-    "GOLD-1143 TUSKER",
-    "GOLD-1152 UNIVERSAL",
-    "GOLD-1154 BALIRAJA",
-    "GOLD-1121 PANTHER",
-    "GOLD-1155 SHUBHRA"
-  ],
-  "Moong": ["GOLD-9 SHANESHWAR", "GOLD-50 VISHNU", "GOLD-60", "GOLD-39"],
-  "Muskmelon": ["GOLD-414"],
-  "Mustard": ["GOLD-358", "GOLD-359"],
-  "Onion": ["GOLD-853", "GOLD-877"],
-  "Paddy": [
-    "GOLD-88 SHRIRAM",
-    "GOLD-78",
-    "GOLD-99 SUPER MOHINI",
-    "GOLD-111 ANNAPURNA",
-    "GOLD-444 CHAMATKAR",
-    "GOLD-333 BHEEM",
-    "GOLD-77 MUKTA GOLD"
-  ],
-  "Radish": ["GOLD-60 RAJ", "GOLD-20 PRATHAM"],
-  "Ridgegourd": ["GOLD-VISHWAS", "GOLD-905 ASMITA"],
-  "Sesame": ["GOLD-801 SANKRANTI"],
-  "Soyabean": [
-    "JS-335",
-    "JS-9305",
-    "GOLD-3344",
-    "GOLD-309",
-    "KDS-726",
-    "KDS-753",
-    "G-4182",
-    "G-4183",
-    "G-4184",
-    "G-4186",
-    "G-4185",
-    "G-4187",
-    "G-4188",
-    "G-4189",
-    "G-4190",
-    "G-4135",
-    "G-4145",
-    "G-4155",
-    "G-4126",
-    "G-4105",
-    "G-4153",
-    "GGSV-193",
-    "GOLD-301"
-  ],
-  "Spinach": ["GOLD-243"],
-  "Sunflower": ["GOLD-7 SUPERSUN"],
-  "Sweet Corn": ["GOLD-1000"],
-  "Tur": ["GOLD-100", "GOLD-135", "GOLD-131", "BDN-711"],
-  "Udid": ["GOLD-22", "TAU-1"],
-  "Watermelon": ["GOLD-441 KING XL"],
-  "Wheat": ["GOLD-21", "GOLD-23", "GOLD-71 BHANUDAS", "GOLD-29"]
-};
+// Dynamic crop and variety data will be fetched from API
 
 const productFormSchema = insertProductSchema.omit({
   submittedBy: true,
@@ -155,7 +75,10 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [selectedCrop, setSelectedCrop] = useState<string>("");
-  const [availableMarketCodes, setAvailableMarketCodes] = useState<string[]>([]);
+
+  // Fetch dynamic crop and variety data
+  const { data: cropNames, isLoading: cropsLoading } = useCropNames();
+  const { data: availableVarieties, isLoading: varietiesLoading } = useVarietiesForCrop(selectedCrop);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -200,14 +123,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
     },
   });
 
-  // Update available market codes when crop changes
-  useEffect(() => {
-    if (selectedCrop && cropMarketData[selectedCrop as keyof typeof cropMarketData]) {
-      setAvailableMarketCodes(cropMarketData[selectedCrop as keyof typeof cropMarketData]);
-    } else {
-      setAvailableMarketCodes([]);
-    }
-  }, [selectedCrop]);
+  // No longer needed - varieties are fetched dynamically based on selectedCrop
 
   const handleCropChange = (cropName: string) => {
     setSelectedCrop(cropName);
@@ -415,11 +331,17 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                           <SelectValue placeholder="Select crop name" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.keys(cropMarketData).map((crop) => (
-                            <SelectItem key={crop} value={crop}>
-                              {crop}
-                            </SelectItem>
-                          ))}
+                          {cropsLoading ? (
+                            <div className="p-2 text-center text-muted-foreground">Loading crops...</div>
+                          ) : cropNames?.length ? (
+                            cropNames.map((crop) => (
+                              <SelectItem key={crop} value={crop}>
+                                {crop}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="p-2 text-center text-muted-foreground">No crops available</div>
+                          )}
                         </SelectContent>
                       </Select>
                     </FormControl>
@@ -782,16 +704,22 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   <FormItem>
                     <FormLabel>Variety *</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={!selectedCrop}>
                         <SelectTrigger data-testid="select-market-code">
-                          <SelectValue placeholder="Select market code" />
+                          <SelectValue placeholder={selectedCrop ? "Select variety" : "Select crop first"} />
                         </SelectTrigger>
                         <SelectContent>
-                          {availableMarketCodes.map((code) => (
-                            <SelectItem key={code} value={code}>
-                              {code}
-                            </SelectItem>
-                          ))}
+                          {varietiesLoading ? (
+                            <div className="p-2 text-center text-muted-foreground">Loading varieties...</div>
+                          ) : availableVarieties?.length ? (
+                            availableVarieties.map((code) => (
+                              <SelectItem key={code} value={code}>
+                                {code}
+                              </SelectItem>
+                            ))
+                          ) : selectedCrop ? (
+                            <div className="p-2 text-center text-muted-foreground">No varieties available for {selectedCrop}</div>
+                          ) : null}
                         </SelectContent>
                       </Select>
                     </FormControl>

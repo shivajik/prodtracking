@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Trash2, Package } from "lucide-react";
+import { Plus, Trash2, Package, Database } from "lucide-react";
+import { seedCropsAndVarieties } from "@/utils/seed-data";
 import type { Crop, Variety } from "@shared/schema";
 
 type CropWithVarieties = Crop & { varieties: Variety[] };
@@ -22,6 +23,7 @@ export default function CropVarietyManagement() {
   const [newCropName, setNewCropName] = useState("");
   const [newVarietyCode, setNewVarietyCode] = useState("");
   const [selectedCropId, setSelectedCropId] = useState("");
+  const [isSeedingLoading, setIsSeedingLoading] = useState(false);
 
   const { data: cropsWithVarieties, isLoading } = useQuery<CropWithVarieties[]>({
     queryKey: ["/api/crops"],
@@ -31,7 +33,6 @@ export default function CropVarietyManagement() {
     mutationFn: (name: string) => apiRequest("/api/crops", {
       method: "POST",
       body: JSON.stringify({ name }),
-      headers: { "Content-Type": "application/json" },
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crops"] });
@@ -76,7 +77,6 @@ export default function CropVarietyManagement() {
       apiRequest("/api/varieties", {
         method: "POST",
         body: JSON.stringify({ code, cropId }),
-        headers: { "Content-Type": "application/json" },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crops"] });
@@ -144,6 +144,26 @@ export default function CropVarietyManagement() {
     });
   };
 
+  const handleSeedData = async () => {
+    setIsSeedingLoading(true);
+    try {
+      await seedCropsAndVarieties();
+      queryClient.invalidateQueries({ queryKey: ["/api/crops"] });
+      toast({
+        title: "Database seeded successfully!",
+        description: "All crops and varieties have been added to the database.",
+      });
+    } catch (error) {
+      toast({
+        title: "Seeding failed",
+        description: "Failed to seed the database. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSeedingLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -164,6 +184,17 @@ export default function CropVarietyManagement() {
           </p>
         </div>
         <div className="space-x-2">
+          {(!cropsWithVarieties || cropsWithVarieties.length === 0) && (
+            <Button
+              onClick={handleSeedData}
+              disabled={isSeedingLoading}
+              variant="default"
+              data-testid="button-seed-data"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              {isSeedingLoading ? "Seeding..." : "Seed Initial Data"}
+            </Button>
+          )}
           <Button
             onClick={() => setShowAddVarietyDialog(true)}
             variant="outline"
