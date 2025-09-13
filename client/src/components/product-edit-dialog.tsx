@@ -40,17 +40,17 @@ const editProductSchema = z.object({
   totalPkts: z.string().optional(),
   from: z.string().optional(),
   to: z.string().optional(),
-  unitOfMeasureCode: z.string().optional(),
+  // unitOfMeasureCode: z.string().optional(), // Hidden as requested
   prodCode: z.string().optional(),
   gb: z.string().optional(),
-  location: z.string().optional(),
-  stageCode: z.string().optional(),
+  // location: z.string().optional(), // Hidden as requested
+  // stageCode: z.string().optional(), // Hidden as requested
   remainingQuantity: z.string().optional(),
   stackNo: z.string().optional(),
-  normalGermination: z.string().optional(),
-  gerAve: z.string().optional(),
-  gotPercent: z.string().optional(),
-  gotAve: z.string().optional(),
+  // normalGermination: z.string().optional(), // Hidden as requested
+  // gerAve: z.string().optional(), // Hidden as requested
+  // gotPercent: z.string().optional(), // Hidden as requested
+  // gotAve: z.string().optional(), // Hidden as requested
   labelNumber: z.string().optional(),
 });
 
@@ -266,6 +266,7 @@ export default function ProductEditDialog({
                 )}
               />
               
+              {/* Hidden as requested: Location field
               <FormField
                 control={editForm.control}
                 name="location"
@@ -279,6 +280,7 @@ export default function ProductEditDialog({
                   </FormItem>
                 )}
               />
+              */}
             </div>
             
             {/* Pricing and Quantity */}
@@ -553,6 +555,7 @@ export default function ProductEditDialog({
             
             {/* Codes and Technical Information */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Hidden as requested: Unit of Measure Code field
               <FormField
                 control={editForm.control}
                 name="unitOfMeasureCode"
@@ -566,6 +569,7 @@ export default function ProductEditDialog({
                   </FormItem>
                 )}
               />
+              */}
               
               <FormField
                 control={editForm.control}
@@ -614,6 +618,7 @@ export default function ProductEditDialog({
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Hidden as requested: Stage Code field
               <FormField
                 control={editForm.control}
                 name="stageCode"
@@ -627,6 +632,7 @@ export default function ProductEditDialog({
                   </FormItem>
                 )}
               />
+              */}
               
               <FormField
                 control={editForm.control}
@@ -645,6 +651,7 @@ export default function ProductEditDialog({
             
             {/* Quality and Testing Information */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Hidden as requested: Normal Germination (%) field
               <FormField
                 control={editForm.control}
                 name="normalGermination"
@@ -658,7 +665,9 @@ export default function ProductEditDialog({
                   </FormItem>
                 )}
               />
+              */}
               
+              {/* Hidden as requested: Germination Average field
               <FormField
                 control={editForm.control}
                 name="gerAve"
@@ -672,6 +681,7 @@ export default function ProductEditDialog({
                   </FormItem>
                 )}
               />
+              */}
               
               <FormField
                 control={editForm.control}
@@ -689,6 +699,7 @@ export default function ProductEditDialog({
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Hidden as requested: GOT Percent field
               <FormField
                 control={editForm.control}
                 name="gotPercent"
@@ -702,7 +713,9 @@ export default function ProductEditDialog({
                   </FormItem>
                 )}
               />
+              */}
               
+              {/* Hidden as requested: GOT Average field
               <FormField
                 control={editForm.control}
                 name="gotAve"
@@ -716,6 +729,7 @@ export default function ProductEditDialog({
                   </FormItem>
                 )}
               />
+              */}
             </div>
             
             <FormField
