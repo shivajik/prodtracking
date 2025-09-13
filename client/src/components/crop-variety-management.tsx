@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Trash2, Package, Database, Upload, Eye } from "lucide-react";
+import { Plus, Trash2, Package, Database, Upload, Eye, Search } from "lucide-react";
 import { seedCropsAndVarieties } from "@/utils/seed-data";
 import type { Crop, Variety } from "@shared/schema";
 
@@ -35,6 +35,7 @@ export default function CropVarietyManagement() {
   const [selectedCropId, setSelectedCropId] = useState("");
   const [isSeedingLoading, setIsSeedingLoading] = useState(false);
   const [isExtractSeedingLoading, setIsExtractSeedingLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: cropsWithVarieties, isLoading } = useQuery<CropWithVarieties[]>({
     queryKey: ["/api/crops"],
@@ -44,6 +45,35 @@ export default function CropVarietyManagement() {
     queryKey: ["/api/products/extract-crops-varieties"],
     enabled: false, // Only fetch when needed
   });
+
+  // Filter crops and varieties based on search term
+  const filteredCropsWithVarieties = useMemo(() => {
+    if (!cropsWithVarieties || !searchTerm.trim()) {
+      return cropsWithVarieties || [];
+    }
+
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    return cropsWithVarieties.filter(crop => {
+      // Search in crop name
+      const cropNameMatch = crop.name.toLowerCase().includes(searchLower);
+      
+      // Search in variety codes
+      const varietyMatch = crop.varieties.some(variety => 
+        variety.code.toLowerCase().includes(searchLower)
+      );
+      
+      return cropNameMatch || varietyMatch;
+    }).map(crop => ({
+      ...crop,
+      varieties: crop.varieties.filter(variety => {
+        // Show all varieties if crop name matches, otherwise show only matching varieties
+        const cropNameMatch = crop.name.toLowerCase().includes(searchLower);
+        const varietyMatch = variety.code.toLowerCase().includes(searchLower);
+        return cropNameMatch || varietyMatch;
+      })
+    }));
+  }, [cropsWithVarieties, searchTerm]);
 
   const seedFromProductsMutation = useMutation({
     mutationFn: async () => {
@@ -262,8 +292,20 @@ export default function CropVarietyManagement() {
         </div>
       </div>
 
+      {/* Search Input */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search by crop name or variety code..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+          data-testid="input-search-crops-varieties"
+        />
+      </div>
+
       <div className="grid gap-6">
-        {cropsWithVarieties?.map((crop) => (
+        {filteredCropsWithVarieties?.map((crop) => (
           <Card key={crop.id} data-testid={`card-crop-${crop.id}`}>
             <CardHeader>
               <div className="flex justify-between items-center">
@@ -318,18 +360,25 @@ export default function CropVarietyManagement() {
           </Card>
         ))}
 
-        {!cropsWithVarieties?.length && (
+        {!filteredCropsWithVarieties?.length && (
           <Card>
             <CardContent className="py-8 text-center">
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No crops found</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {searchTerm ? "No crops match your search" : "No crops found"}
+              </h3>
               <p className="text-muted-foreground mb-4">
-                Start by creating your first crop to manage varieties.
+                {searchTerm 
+                  ? "Try adjusting your search terms or clear the search to see all crops."
+                  : "Start by creating your first crop to manage varieties."
+                }
               </p>
-              <Button onClick={() => setShowAddCropDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add First Crop
-              </Button>
+              {!searchTerm && (
+                <Button onClick={() => setShowAddCropDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Crop
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
