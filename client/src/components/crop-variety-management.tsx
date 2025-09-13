@@ -245,6 +245,8 @@ export default function CropVarietyManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Commented out duplicate heading and description - already shown in admin dashboard */}
+      {/* 
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Crop & Variety Management</h2>
@@ -252,6 +254,9 @@ export default function CropVarietyManagement() {
             Manage crops and their varieties for product forms
           </p>
         </div>
+      */}
+      <div className="flex justify-between items-center">
+        <div></div>
         <div className="space-x-2">
           {/* {(!cropsWithVarieties || cropsWithVarieties.length === 0) && (
             <>
@@ -292,7 +297,8 @@ export default function CropVarietyManagement() {
         </div>
       </div>
 
-      {/* Search Input */}
+      {/* Commented out duplicate search bar - already shown in admin dashboard if needed */}
+      {/* 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
@@ -303,6 +309,7 @@ export default function CropVarietyManagement() {
           data-testid="input-search-crops-varieties"
         />
       </div>
+      */}
 
       <div className="grid gap-6">
         {filteredCropsWithVarieties?.map((crop) => (

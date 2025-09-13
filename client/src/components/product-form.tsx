@@ -289,7 +289,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Basic Product Information */}
+            {/* Basic Product Information - Arranged in user specified order */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
@@ -299,20 +299,6 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                     <FormLabel>Company</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-company" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="brand"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Brand</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-brand" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -366,7 +352,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               />
             </div>
             
-            {/* Description */}
+            {/* Description - positioned as specified */}
             <FormField
               control={form.control}
               name="description"
@@ -381,16 +367,35 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               )}
             />
             
-            {/* Pricing and Quantity */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Continue with remaining fields in specified order */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
-                name="mrp"
+                name="marketCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>MRP Rs. (Inclusive of All Taxes)</FormLabel>
+                    <FormLabel>Variety</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" step="0.01" data-testid="input-mrp" />
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger data-testid="select-variety">
+                          <SelectValue placeholder="Select variety" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {varietiesLoading ? (
+                            <div className="p-2 text-center text-muted-foreground">Loading varieties...</div>
+                          ) : !selectedCrop ? (
+                            <div className="p-2 text-center text-muted-foreground">Please select a crop first</div>
+                          ) : availableVarieties?.length ? (
+                            availableVarieties.map((variety) => (
+                              <SelectItem key={variety} value={variety}>
+                                {variety}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="p-2 text-center text-muted-foreground">No varieties available for selected crop</div>
+                          )}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -399,102 +404,12 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               
               <FormField
                 control={form.control}
-                name="netQty"
+                name="prodCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Net Qty *</FormLabel>
+                    <FormLabel>Product Code</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-net-qty" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="packSize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Pack Size</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-pack-size" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            {/* Additional Pricing Information */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FormField
-                control={form.control}
-                name="unitSalePrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit Sale Price</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" step="0.01" data-testid="input-unit-sale-price" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="noOfPkts"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>No. of Packets</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" data-testid="input-no-of-pkts" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="totalPkts"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Total Packets</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" data-testid="input-total-pkts" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="labelNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Label Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-label-number" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            {/* Batch and Date Information */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FormField
-                control={form.control}
-                name="lotBatch"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lot/Batch No</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-lot-batch" />
+                      <Input {...field} data-testid="input-product-code" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -517,28 +432,12 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               
               <FormField
                 control={form.control}
-                name="stackNo"
+                name="gb"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Stack No</FormLabel>
+                    <FormLabel>GB</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-stack-no" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FormField
-                control={form.control}
-                name="mfgDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mfg Date *</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="date" data-testid="input-mfg-date" />
+                      <Input {...field} data-testid="input-gb" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -547,12 +446,96 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               
               <FormField
                 control={form.control}
-                name="expiryDate"
+                name="netQty"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Expiry Date *</FormLabel>
+                    <FormLabel>Qty(kg) *</FormLabel>
                     <FormControl>
-                      <Input {...field} type="date" data-testid="input-expiry-date" />
+                      <Input {...field} data-testid="input-net-qty" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="packSize"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pack Size</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-pack-size" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="noOfPkts"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>No Of Pkts</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" data-testid="input-no-of-pkts" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="totalPkts"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Pkts</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" data-testid="input-total-pkts" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="lotBatch"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Lot No</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-lot-batch" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="from"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Label No. From</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-from" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="to"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Label No. To</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-to" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -564,7 +547,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="dateOfTest"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date of Test</FormLabel>
+                    <FormLabel>Date Of Test</FormLabel>
                     <FormControl>
                       <Input {...field} type="date" data-testid="input-date-of-test" />
                     </FormControl>
@@ -572,9 +555,152 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="expiryDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valid Up To</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="date" data-testid="input-expiry-date" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="mfgDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date Of Packing</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="date" data-testid="input-mfg-date" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="mrp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>MRP</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.01" data-testid="input-mrp" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="unitSalePrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit Sale Prize</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.01" data-testid="input-unit-sale-price" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Commented out fields - keeping for reference as requested 
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Brand</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-brand" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-location" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="stackNo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stack No</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-stack-no" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              */}
+              
+              {/* Final fields as requested */}
+              <FormField
+                control={form.control}
+                name="stageCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stage Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-stage-code" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="remainingQuantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Remaining Quantity</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-remaining-quantity" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="unitOfMeasureCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit of Measure Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-unit-of-measure-code" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             
-            {/* Contact Information */}
+            {/* Optional/Additional Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
