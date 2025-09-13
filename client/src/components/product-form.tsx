@@ -657,7 +657,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>No. From</FormLabel>
+                    <FormLabel>Label No. From</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-from" />
                     </FormControl>
@@ -671,7 +671,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="to"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>No. To</FormLabel>
+                    <FormLabel>Label No. To</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-to" />
                     </FormControl>

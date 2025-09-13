@@ -223,7 +223,7 @@ export default function CropVarietyManagement() {
           </p>
         </div>
         <div className="space-x-2">
-          {(!cropsWithVarieties || cropsWithVarieties.length === 0) && (
+          {/* {(!cropsWithVarieties || cropsWithVarieties.length === 0) && (
             <>
               <Button
                 onClick={handleShowExtractDialog}
@@ -243,7 +243,7 @@ export default function CropVarietyManagement() {
                 {isSeedingLoading ? "Seeding..." : "Seed Initial Data"}
               </Button>
             </>
-          )}
+          )} */}
           <Button
             onClick={() => setShowAddVarietyDialog(true)}
             variant="outline"

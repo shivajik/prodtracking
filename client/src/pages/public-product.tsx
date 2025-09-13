@@ -257,9 +257,9 @@ export default function PublicProduct() {
                 <div className="bg-muted rounded-lg p-4">
                   <h4 className="font-semibold text-foreground mb-2">Distribution Range</h4>
                   <p className="text-muted-foreground" data-testid="text-distribution-range">
-                    {product.from && `No. From: ${product.from}`}
+                    {product.from && `Label No. From: ${product.from}`}
                     {product.from && product.to && " | "}
-                    {product.to && `No. To: ${product.to}`}
+                    {product.to && `Label No. To: ${product.to}`}
                   </p>
                 </div>
               )}

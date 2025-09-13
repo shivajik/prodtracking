@@ -527,7 +527,7 @@ export default function ProductEditDialog({
                 name="from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>No. From</FormLabel>
+                    <FormLabel>Label No. From</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-from" />
                     </FormControl>
@@ -541,7 +541,7 @@ export default function ProductEditDialog({
                 name="to"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>No. To</FormLabel>
+                    <FormLabel>Label No. To</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-to" />
                     </FormControl>
