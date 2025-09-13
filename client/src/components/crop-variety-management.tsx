@@ -10,30 +10,65 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Trash2, Package, Database } from "lucide-react";
+import { Plus, Trash2, Package, Database, Upload, Eye } from "lucide-react";
 import { seedCropsAndVarieties } from "@/utils/seed-data";
 import type { Crop, Variety } from "@shared/schema";
 
 type CropWithVarieties = Crop & { varieties: Variety[] };
 
+type ExtractedData = {
+  totalProducts: number;
+  extractedCrops: number;
+  cropsWithVarieties: Array<{
+    cropName: string;
+    varieties: string[];
+  }>;
+};
+
 export default function CropVarietyManagement() {
   const { toast } = useToast();
   const [showAddCropDialog, setShowAddCropDialog] = useState(false);
   const [showAddVarietyDialog, setShowAddVarietyDialog] = useState(false);
+  const [showExtractDialog, setShowExtractDialog] = useState(false);
   const [newCropName, setNewCropName] = useState("");
   const [newVarietyCode, setNewVarietyCode] = useState("");
   const [selectedCropId, setSelectedCropId] = useState("");
   const [isSeedingLoading, setIsSeedingLoading] = useState(false);
+  const [isExtractSeedingLoading, setIsExtractSeedingLoading] = useState(false);
 
   const { data: cropsWithVarieties, isLoading } = useQuery<CropWithVarieties[]>({
     queryKey: ["/api/crops"],
   });
 
+  const { data: extractedData, refetch: refetchExtractedData } = useQuery<ExtractedData>({
+    queryKey: ["/api/products/extract-crops-varieties"],
+    enabled: false, // Only fetch when needed
+  });
+
+  const seedFromProductsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/products/seed-crops-varieties");
+      return await res.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crops"] });
+      toast({
+        title: "Successfully seeded from existing products!",
+        description: `Created ${result.results.createdCrops} crops and ${result.results.createdVarieties} varieties from ${result.totalProducts} products.`,
+      });
+      setShowExtractDialog(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Seeding from products failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const createCropMutation = useMutation({
-    mutationFn: (name: string) => apiRequest("/api/crops", {
-      method: "POST",
-      body: JSON.stringify({ name }),
-    }),
+    mutationFn: (name: string) => apiRequest("POST", "/api/crops", { name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crops"] });
       setShowAddCropDialog(false);
@@ -53,9 +88,7 @@ export default function CropVarietyManagement() {
   });
 
   const deleteCropMutation = useMutation({
-    mutationFn: (cropId: string) => apiRequest(`/api/crops/${cropId}`, {
-      method: "DELETE",
-    }),
+    mutationFn: (cropId: string) => apiRequest("DELETE", `/api/crops/${cropId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crops"] });
       toast({
@@ -74,10 +107,7 @@ export default function CropVarietyManagement() {
 
   const createVarietyMutation = useMutation({
     mutationFn: ({ code, cropId }: { code: string; cropId: string }) => 
-      apiRequest("/api/varieties", {
-        method: "POST",
-        body: JSON.stringify({ code, cropId }),
-      }),
+      apiRequest("POST", "/api/varieties", { code, cropId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crops"] });
       setShowAddVarietyDialog(false);
@@ -98,9 +128,7 @@ export default function CropVarietyManagement() {
   });
 
   const deleteVarietyMutation = useMutation({
-    mutationFn: (varietyId: string) => apiRequest(`/api/varieties/${varietyId}`, {
-      method: "DELETE",
-    }),
+    mutationFn: (varietyId: string) => apiRequest("DELETE", `/api/varieties/${varietyId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crops"] });
       toast({
@@ -164,6 +192,17 @@ export default function CropVarietyManagement() {
     }
   };
 
+  const handleShowExtractDialog = async () => {
+    setShowExtractDialog(true);
+    await refetchExtractedData();
+  };
+
+  const handleSeedFromProducts = () => {
+    setIsExtractSeedingLoading(true);
+    seedFromProductsMutation.mutate();
+    setIsExtractSeedingLoading(false);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -185,15 +224,25 @@ export default function CropVarietyManagement() {
         </div>
         <div className="space-x-2">
           {(!cropsWithVarieties || cropsWithVarieties.length === 0) && (
-            <Button
-              onClick={handleSeedData}
-              disabled={isSeedingLoading}
-              variant="default"
-              data-testid="button-seed-data"
-            >
-              <Database className="h-4 w-4 mr-2" />
-              {isSeedingLoading ? "Seeding..." : "Seed Initial Data"}
-            </Button>
+            <>
+              <Button
+                onClick={handleShowExtractDialog}
+                variant="secondary"
+                data-testid="button-extract-from-products"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Extract from Products
+              </Button>
+              <Button
+                onClick={handleSeedData}
+                disabled={isSeedingLoading}
+                variant="default"
+                data-testid="button-seed-data"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                {isSeedingLoading ? "Seeding..." : "Seed Initial Data"}
+              </Button>
+            </>
           )}
           <Button
             onClick={() => setShowAddVarietyDialog(true)}
@@ -381,6 +430,77 @@ export default function CropVarietyManagement() {
               data-testid="button-create-variety"
             >
               {createVarietyMutation.isPending ? "Creating..." : "Create Variety"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Extract from Products Dialog */}
+      <Dialog open={showExtractDialog} onOpenChange={setShowExtractDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-extract-from-products">
+          <DialogHeader>
+            <DialogTitle>Extract Crops & Varieties from Existing Products</DialogTitle>
+            <DialogDescription>
+              Review crops and varieties that can be extracted from your existing product data, then seed the management system.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {extractedData ? (
+            <div className="space-y-6">
+              <div className="bg-muted p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">Summary</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Total Products:</span> {extractedData.totalProducts}
+                  </div>
+                  <div>
+                    <span className="font-medium">Unique Crops:</span> {extractedData.extractedCrops}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold">Crops and Varieties to be Added:</h3>
+                <div className="max-h-96 overflow-y-auto space-y-3">
+                  {extractedData.cropsWithVarieties.map((crop, index) => (
+                    <Card key={index}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-lg">{crop.cropName}</h4>
+                          <Badge variant="secondary">{crop.varieties.length} varieties</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {crop.varieties.map((variety, vIndex) => (
+                            <Badge key={vIndex} variant="outline" className="text-xs">
+                              {variety}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Loading extracted data...</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowExtractDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSeedFromProducts}
+              disabled={seedFromProductsMutation.isPending || !extractedData}
+              data-testid="button-seed-from-products"
+            >
+              {seedFromProductsMutation.isPending ? "Seeding..." : "Seed from Products"}
             </Button>
           </DialogFooter>
         </DialogContent>

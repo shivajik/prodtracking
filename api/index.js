@@ -118,6 +118,19 @@ const products = pgTable("products", {
   rejectionReason: text("rejection_reason"),
 });
 
+const crops = pgTable("crops", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+const varieties = pgTable("varieties", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  cropId: uuid("crop_id").notNull().references(() => crops.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Validation Schemas
 const insertUserSchema = z.object({
   username: z.string().min(1),
@@ -359,6 +372,68 @@ const storage = {
         )
       )
       .orderBy(desc(products.submissionDate));
+  },
+
+  async getAllCropsWithVarieties() {
+    const db = getDatabase();
+    const cropsData = await db.select().from(crops).orderBy(crops.name);
+    
+    const result = [];
+    
+    for (const crop of cropsData) {
+      const cropVarieties = await db
+        .select()
+        .from(varieties)
+        .where(eq(varieties.cropId, crop.id))
+        .orderBy(varieties.code);
+      
+      result.push({
+        ...crop,
+        varieties: cropVarieties
+      });
+    }
+    
+    return result;
+  },
+
+  async createCrop(crop) {
+    const db = getDatabase();
+    const [newCrop] = await db
+      .insert(crops)
+      .values(crop)
+      .returning();
+    return newCrop;
+  },
+
+  async deleteCrop(id) {
+    try {
+      const db = getDatabase();
+      const result = await db.delete(crops).where(eq(crops.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting crop:', error);
+      return false;
+    }
+  },
+
+  async createVariety(variety) {
+    const db = getDatabase();
+    const [newVariety] = await db
+      .insert(varieties)
+      .values(variety)
+      .returning();
+    return newVariety;
+  },
+
+  async deleteVariety(id) {
+    try {
+      const db = getDatabase();
+      const result = await db.delete(varieties).where(eq(varieties.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting variety:', error);
+      return false;
+    }
   }
 };
 
@@ -1050,6 +1125,259 @@ async function createApp() {
         message: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date().toISOString()
       });
+    }
+  });
+
+  // Get all crops with their varieties
+  app.get("/api/crops", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const crops = await storage.getAllCropsWithVarieties();
+      res.json(crops);
+    } catch (error) {
+      console.error("Get crops error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new crop (admin only)
+  app.post("/api/crops", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { name } = req.body;
+      if (!name || typeof name !== "string" || name.trim() === "") {
+        return res.status(400).json({ message: "Crop name is required" });
+      }
+
+      const crop = await storage.createCrop({ name: name.trim() });
+      res.status(201).json(crop);
+    } catch (error) {
+      console.error("Create crop error:", error);
+      if (error instanceof Error && error.message.includes("unique")) {
+        return res.status(400).json({ message: "Crop name already exists" });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete crop (admin only)
+  app.delete("/api/crops/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteCrop(id);
+
+      if (!success) {
+        return res.status(404).json({ message: "Crop not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete crop error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new variety (admin only)
+  app.post("/api/varieties", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { code, cropId } = req.body;
+      if (!code || typeof code !== "string" || code.trim() === "") {
+        return res.status(400).json({ message: "Variety code is required" });
+      }
+      if (!cropId || typeof cropId !== "string") {
+        return res.status(400).json({ message: "Crop ID is required" });
+      }
+
+      const variety = await storage.createVariety({ 
+        code: code.trim(), 
+        cropId 
+      });
+      res.status(201).json(variety);
+    } catch (error) {
+      console.error("Create variety error:", error);
+      if (error instanceof Error && error.message.includes("unique")) {
+        return res.status(400).json({ message: "Variety code already exists" });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete variety (admin only)
+  app.delete("/api/varieties/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteVariety(id);
+
+      if (!success) {
+        return res.status(404).json({ message: "Variety not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete variety error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Extract crops and varieties from existing products (admin only)
+  app.get("/api/products/extract-crops-varieties", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const allProducts = await storage.getAllProducts();
+      
+      // Extract unique crops and their varieties
+      const cropVarietyMap = new Map();
+      
+      allProducts.forEach(product => {
+        const cropName = product.product?.trim();
+        const varietyCode = product.marketCode?.trim();
+        
+        if (cropName) {
+          if (!cropVarietyMap.has(cropName)) {
+            cropVarietyMap.set(cropName, new Set());
+          }
+          
+          if (varietyCode) {
+            cropVarietyMap.get(cropName).add(varietyCode);
+          }
+        }
+      });
+
+      // Convert to array format
+      const extractedData = Array.from(cropVarietyMap.entries()).map(([cropName, varietiesSet]) => ({
+        cropName,
+        varieties: Array.from(varietiesSet).sort()
+      }));
+
+      res.json({
+        totalProducts: allProducts.length,
+        extractedCrops: extractedData.length,
+        cropsWithVarieties: extractedData
+      });
+    } catch (error) {
+      console.error("Extract crops/varieties error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Seed crops and varieties from existing product data (admin only)
+  app.post("/api/products/seed-crops-varieties", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const allProducts = await storage.getAllProducts();
+      
+      // Extract unique crops and their varieties
+      const cropVarietyMap = new Map();
+      
+      allProducts.forEach(product => {
+        const cropName = product.product?.trim();
+        const varietyCode = product.marketCode?.trim();
+        
+        if (cropName) {
+          if (!cropVarietyMap.has(cropName)) {
+            cropVarietyMap.set(cropName, new Set());
+          }
+          
+          if (varietyCode) {
+            cropVarietyMap.get(cropName).add(varietyCode);
+          }
+        }
+      });
+
+      let createdCrops = 0;
+      let createdVarieties = 0;
+      let skippedCrops = 0;
+      let skippedVarieties = 0;
+
+      // Create crops and varieties
+      for (const [cropName, varietiesSet] of Array.from(cropVarietyMap)) {
+        try {
+          // Try to create crop
+          const crop = await storage.createCrop({ name: cropName });
+          createdCrops++;
+          
+          // Create varieties for this crop
+          for (const varietyCode of varietiesSet) {
+            try {
+              await storage.createVariety({ 
+                code: varietyCode, 
+                cropId: crop.id 
+              });
+              createdVarieties++;
+            } catch (error) {
+              // Skip if variety already exists
+              skippedVarieties++;
+            }
+          }
+        } catch (error) {
+          // Skip if crop already exists
+          skippedCrops++;
+          
+          // Try to get existing crop and create missing varieties
+          try {
+            const existingCrops = await storage.getAllCropsWithVarieties();
+            const existingCrop = existingCrops.find(c => c.name === cropName);
+            
+            if (existingCrop) {
+              const existingVarietyCodes = existingCrop.varieties.map(v => v.code);
+              
+              for (const varietyCode of varietiesSet) {
+                if (!existingVarietyCodes.includes(varietyCode)) {
+                  try {
+                    await storage.createVariety({ 
+                      code: varietyCode, 
+                      cropId: existingCrop.id 
+                    });
+                    createdVarieties++;
+                  } catch (error) {
+                    skippedVarieties++;
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error processing existing crop:", error);
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        totalProducts: allProducts.length,
+        results: {
+          createdCrops,
+          skippedCrops,
+          createdVarieties,
+          skippedVarieties
+        }
+      });
+    } catch (error) {
+      console.error("Seed crops/varieties error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
