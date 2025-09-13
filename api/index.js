@@ -934,8 +934,8 @@ async function createApp() {
             marketedBy: row.marketedBy || row['Marketed By'] || row.marketer || row.Marketer || null,
             
             // Range and location - NO FALLBACKS
-            from: row.from || row.From || row.FROM || null,
-            to: row.to || row.To || row.TO || null,
+            from: row.from || row.From || row.FROM || row['From'] || null,
+            to: row.to || row.To || row.TO || row['To'] || null,
             
             // Codes - CONSOLIDATED MAPPING (Marketing Code and Market Code treated as same)
             marketingCode: row['Market Code FF'] || row.marketingCode || row['Marketing Code'] || row.code || row.Code || null,

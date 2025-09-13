@@ -76,7 +76,7 @@ export default function ProductViewDialog({
                 <p className="font-medium" data-testid="view-brand">{product.brand || "Not specified"}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Market Code</p>
+                <p className="text-sm font-medium text-muted-foreground">Variety</p>
                 <p className="font-medium font-mono" data-testid="view-market-code">{product.marketCode || "Not specified"}</p>
               </div>
               <div>
@@ -124,21 +124,21 @@ export default function ProductViewDialog({
                 <p className="font-medium" data-testid="view-total-pkts">{product.totalPkts || "Not specified"}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Range From</p>
+                <p className="text-sm font-medium text-muted-foreground">Label No. From</p>
                 <p className="font-medium" data-testid="view-from">{product.from || "Not specified"}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Range To</p>
+                <p className="text-sm font-medium text-muted-foreground">Label No. To</p>
                 <p className="font-medium" data-testid="view-to">{product.to || "Not specified"}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">GB</p>
                 <p className="font-medium" data-testid="view-gb">{product.gb || "Not specified"}</p>
               </div>
-              <div>
+              {/* <div>
                 <p className="text-sm font-medium text-muted-foreground">Stack Number</p>
                 <p className="font-medium" data-testid="view-stack-no">{product.stackNo || "Not specified"}</p>
-              </div>
+              </div> */}
             </div>
           </section>
 
@@ -161,15 +161,15 @@ export default function ProductViewDialog({
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Manufacturing Date</p>
-                <p className="font-medium" data-testid="view-mfg-date">{formatDate(product.mfgDate)}</p>
+                <p className="font-medium" data-testid="view-mfg-date">{(product.mfgDate)}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Expiry Date</p>
-                <p className="font-medium" data-testid="view-expiry-date">{formatDate(product.expiryDate)}</p>
+                <p className="font-medium" data-testid="view-expiry-date">{(product.expiryDate)}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Date of Test</p>
-                <p className="font-medium" data-testid="view-date-of-test">{formatDate(product.dateOfTest)}</p>
+                <p className="font-medium" data-testid="view-date-of-test">{(product.dateOfTest)}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Submission Date</p>
