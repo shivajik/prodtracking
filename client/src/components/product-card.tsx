@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Check, X, Calendar, Package, Edit } from "lucide-react";
 import { Product } from "@shared/schema";
+import { useState } from "react";
+import ProductViewDialog from "./product-view-dialog";
 
 interface ProductCardProps {
   product: Product;
@@ -21,6 +23,8 @@ export default function ProductCard({
   onEdit,
   isLoading = false 
 }: ProductCardProps) {
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
@@ -94,10 +98,7 @@ export default function ProductCard({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => {
-              // TODO: Implement view details modal or navigation
-              console.log("View details for", product.id);
-            }}
+            onClick={() => setShowViewDialog(true)}
             data-testid="button-view-details"
           >
             <Eye className="h-4 w-4 mr-2" />
@@ -156,6 +157,13 @@ export default function ProductCard({
           )}
         </div>
       </CardContent>
+
+      {/* View Details Dialog */}
+      <ProductViewDialog
+        product={product}
+        open={showViewDialog}
+        onOpenChange={setShowViewDialog}
+      />
     </Card>
   );
 }
