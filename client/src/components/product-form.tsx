@@ -657,47 +657,47 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               */}
               
               {/* Final fields as requested */}
-              <FormField
-                control={form.control}
-                name="stageCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Stage Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-stage-code" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* <FormField
+              //   control={form.control}
+              //   name="stageCode"
+              //   render={({ field }) => (
+              //     <FormItem>
+              //       <FormLabel>Stage Code</FormLabel>
+              //       <FormControl>
+              //         <Input {...field} data-testid="input-stage-code" />
+              //       </FormControl>
+              //       <FormMessage />
+              //     </FormItem>
+              //   )}
+              // />
               
-              <FormField
-                control={form.control}
-                name="remainingQuantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Remaining Quantity</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-remaining-quantity" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              // <FormField
+              //   control={form.control}
+              //   name="remainingQuantity"
+              //   render={({ field }) => (
+              //     <FormItem>
+              //       <FormLabel>Remaining Quantity</FormLabel>
+              //       <FormControl>
+              //         <Input {...field} data-testid="input-remaining-quantity" />
+              //       </FormControl>
+              //       <FormMessage />
+              //     </FormItem>
+              //   )}
+              // />
               
-              <FormField
-                control={form.control}
-                name="unitOfMeasureCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit of Measure Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-unit-of-measure-code" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              // <FormField
+              //   control={form.control}
+              //   name="unitOfMeasureCode"
+              //   render={({ field }) => (
+              //     <FormItem>
+              //       <FormLabel>Unit of Measure Code</FormLabel>
+              //       <FormControl>
+              //         <Input {...field} data-testid="input-unit-of-measure-code" />
+              //       </FormControl>
+              //       <FormMessage />
+              //     </FormItem>
+              //   )}
+              // /> */}
             </div>
             
             {/* Optional/Additional Information */}
@@ -760,56 +760,15 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-location" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
             
-            {/* Distribution Range */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="from"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Label No. From</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-from" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="to"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Label No. To</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-to" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
+{/*             
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </div> */}
             
             {/* Codes and Technical Information */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FormField
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> */}
+              {/* <FormField
                 control={form.control}
                 name="unitOfMeasureCode"
                 render={({ field }) => (
@@ -821,40 +780,10 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
               
-              <FormField
-                control={form.control}
-                name="marketCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Variety *</FormLabel>
-                    <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange} disabled={!selectedCrop}>
-                        <SelectTrigger data-testid="select-market-code">
-                          <SelectValue placeholder={selectedCrop ? "Select variety" : "Select crop first"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {varietiesLoading ? (
-                            <div className="p-2 text-center text-muted-foreground">Loading varieties...</div>
-                          ) : availableVarieties?.length ? (
-                            availableVarieties.map((code) => (
-                              <SelectItem key={code} value={code}>
-                                {code}
-                              </SelectItem>
-                            ))
-                          ) : selectedCrop ? (
-                            <div className="p-2 text-center text-muted-foreground">No varieties available for {selectedCrop}</div>
-                          ) : null}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="prodCode"
                 render={({ field }) => (
@@ -866,38 +795,10 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
-            </div>
+              /> */}
+            {/* </div> */}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="stageCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Stage Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-stage-code" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="remainingQuantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Remaining Quantity</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" step="0.01" data-testid="input-remaining-quantity" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+          
             
             {/* Quality and Testing Information */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -929,19 +830,6 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 )}
               /> */}
               
-              <FormField
-                control={form.control}
-                name="gb"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>GB</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" step="0.01" data-testid="input-gb" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

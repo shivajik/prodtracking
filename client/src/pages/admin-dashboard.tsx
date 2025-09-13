@@ -700,12 +700,12 @@ export default function AdminDashboard() {
 
           {activeTab === "overview" && renderOverview()}
           
-          {["pending", "approved", "rejected", "all", "users", "crops"].map((tab) => 
+          {["pending", "approved", "rejected", "all", "users"].map((tab) => 
             activeTab === tab && (
               <div key={tab} className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold text-foreground capitalize">
-                    {tab === "all" ? "All Products" : tab === "users" ? "User Management" : tab === "crops" ? "Crop & Variety Management" : `${tab} Products`}
+                    {tab === "all" ? "All Products" : tab === "users" ? "User Management" : `${tab} Products`}
                   </h2>
                   {tab === "users" && (
                     <Button 
@@ -791,8 +791,8 @@ export default function AdminDashboard() {
                       ))}
                     </div>
                   )
-                ) : tab === "crops" ? (
-                  <CropVarietyManagement />
+                // ) : tab === "crops" ? (
+                //   <CropVarietyManagement />
                 ) : (
                   (() => {
                     const isLoading = tab === "pending" ? pendingLoading : 
@@ -841,6 +841,10 @@ export default function AdminDashboard() {
                 )}
               </div>
             )
+          )}
+            {/* Separate rendering for crops tab without heading and search */}
+          {activeTab === "crops" && (
+            <CropVarietyManagement />
           )}
         </div>
       </div>
