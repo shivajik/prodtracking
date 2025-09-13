@@ -270,7 +270,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
   return (
     <>
       <Card className="shadow-sm">
-        <CardHeader>
+        <CardHeader className="pb-4">
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-2xl">Product Information Entry</CardTitle>
@@ -286,11 +286,11 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
             </Button>
           </div>
         </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* Basic Product Information - Arranged in user specified order */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="company"
@@ -350,25 +350,6 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   </FormItem>
                 )}
               />
-            </div>
-            
-            {/* Description - positioned as specified */}
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={3} data-testid="textarea-description" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Continue with remaining fields in specified order */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
                 name="marketCode"
@@ -402,6 +383,12 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 )}
               />
               
+            </div>
+            
+
+            
+            {/* Main product fields - removed variety since it's now with crop name above */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="prodCode"
@@ -700,8 +687,8 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               // /> */}
             </div>
             
-            {/* Optional/Additional Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Contact Information - 3 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="customerCare"
@@ -729,24 +716,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   </FormItem>
                 )}
               />
-            </div>
-            
-            {/* Address and Marketing */}
-            <FormField
-              control={form.control}
-              name="companyAddress"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Company Address *</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={2} data-testid="textarea-company-address" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
               <FormField
                 control={form.control}
                 name="marketedBy"
@@ -763,11 +733,11 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
             
             </div>
 {/*             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             </div> */}
             
             {/* Codes and Technical Information */}
-            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> */}
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> */}
               {/* <FormField
                 control={form.control}
                 name="unitOfMeasureCode"
@@ -801,7 +771,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
           
             
             {/* Quality and Testing Information */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* <FormField
                 control={form.control}
                 name="normalGermination"
@@ -832,7 +802,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* <FormField
                 control={form.control}
                 name="gotPercent"
@@ -865,9 +835,9 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
             {/* File Upload */}
             <div>
               <Label htmlFor="brochure">Brochure (Attachment)</Label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-border border-dashed rounded-md hover:border-primary/50 transition-colors">
+              <div className="mt-1 flex justify-center px-6 py-4 border-2 border-border border-dashed rounded-md hover:border-primary/50 transition-colors">
                 <div className="space-y-1 text-center">
-                  <CloudUpload className="h-10 w-10 text-muted-foreground mx-auto" />
+                  <CloudUpload className="h-8 w-8 text-muted-foreground mx-auto" />
                   <div className="flex text-sm text-muted-foreground">
                     <label htmlFor="brochure" className="relative cursor-pointer bg-background rounded-md font-medium text-primary hover:text-primary/80">
                       <span>Upload a file</span>
@@ -892,7 +862,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
             </div>
             
             {/* Submit Button */}
-            <div className="flex justify-end space-x-4 pt-6">
+            <div className="flex justify-end space-x-4 pt-4">
               <Button 
                 type="button" 
                 variant="outline" 
@@ -964,6 +934,6 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    </>
-  );
+  </>
+)
 }
