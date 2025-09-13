@@ -735,7 +735,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>From</FormLabel>
+                    <FormLabel>No. From</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-from" />
                     </FormControl>
@@ -749,7 +749,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="to"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>To</FormLabel>
+                    <FormLabel>No. To</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-to" />
                     </FormControl>
@@ -780,7 +780,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                 name="marketCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Market Code *</FormLabel>
+                    <FormLabel>Variety *</FormLabel>
                     <FormControl>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger data-testid="select-market-code">
@@ -847,7 +847,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
             
             {/* Quality and Testing Information */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="normalGermination"
                 render={({ field }) => (
@@ -859,9 +859,9 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
               
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="gerAve"
                 render={({ field }) => (
@@ -873,7 +873,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
               
               <FormField
                 control={form.control}
@@ -891,7 +891,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="gotPercent"
                 render={({ field }) => (
@@ -903,9 +903,9 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
               
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="gotAve"
                 render={({ field }) => (
@@ -917,7 +917,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
             </div>
             
             {/* File Upload */}
