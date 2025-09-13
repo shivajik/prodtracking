@@ -46,7 +46,7 @@ export default function ProductCard({
               {product.product}
             </h3>
             <p className="text-sm text-muted-foreground">
-              <span data-testid="text-brand">{product.brand}</span> • 
+              <span data-testid="text-brand">{product.marketCode}</span> • 
               <span data-testid="text-company"> {product.company}</span>
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -104,7 +104,7 @@ export default function ProductCard({
             View Details
           </Button>
           
-          {onViewPublic && (
+          {onViewPublic && product.status === "approved" && (
             <Button 
               variant="outline" 
               size="sm"
@@ -115,6 +115,7 @@ export default function ProductCard({
               View Public Page
             </Button>
           )}
+          {/* View Public Page button hidden for non-approved products */}
           
           {onEdit && (
             <Button 
