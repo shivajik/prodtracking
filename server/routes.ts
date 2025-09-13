@@ -807,6 +807,150 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Extract crops and varieties from existing products (admin only)
+  app.get("/api/products/extract-crops-varieties", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const products = await storage.getAllProducts();
+      
+      // Extract unique crops and their varieties
+      const cropVarietyMap = new Map();
+      
+      products.forEach(product => {
+        const cropName = product.product?.trim();
+        const varietyCode = product.marketCode?.trim();
+        
+        if (cropName) {
+          if (!cropVarietyMap.has(cropName)) {
+            cropVarietyMap.set(cropName, new Set());
+          }
+          
+          if (varietyCode) {
+            cropVarietyMap.get(cropName).add(varietyCode);
+          }
+        }
+      });
+
+      // Convert to array format
+      const extractedData = Array.from(cropVarietyMap.entries()).map(([cropName, varietiesSet]) => ({
+        cropName,
+        varieties: Array.from(varietiesSet).sort()
+      }));
+
+      res.json({
+        totalProducts: products.length,
+        extractedCrops: extractedData.length,
+        cropsWithVarieties: extractedData
+      });
+    } catch (error) {
+      console.error("Extract crops/varieties error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Seed crops and varieties from existing product data (admin only)
+  app.post("/api/products/seed-crops-varieties", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const products = await storage.getAllProducts();
+      
+      // Extract unique crops and their varieties
+      const cropVarietyMap = new Map();
+      
+      products.forEach(product => {
+        const cropName = product.product?.trim();
+        const varietyCode = product.marketCode?.trim();
+        
+        if (cropName) {
+          if (!cropVarietyMap.has(cropName)) {
+            cropVarietyMap.set(cropName, new Set());
+          }
+          
+          if (varietyCode) {
+            cropVarietyMap.get(cropName).add(varietyCode);
+          }
+        }
+      });
+
+      let createdCrops = 0;
+      let createdVarieties = 0;
+      let skippedCrops = 0;
+      let skippedVarieties = 0;
+
+      // Create crops and varieties
+      for (const [cropName, varietiesSet] of Array.from(cropVarietyMap)) {
+        try {
+          // Try to create crop
+          const crop = await storage.createCrop({ name: cropName });
+          createdCrops++;
+          
+          // Create varieties for this crop
+          for (const varietyCode of varietiesSet) {
+            try {
+              await storage.createVariety({ 
+                code: varietyCode, 
+                cropId: crop.id 
+              });
+              createdVarieties++;
+            } catch (error) {
+              // Skip if variety already exists
+              skippedVarieties++;
+            }
+          }
+        } catch (error) {
+          // Skip if crop already exists
+          skippedCrops++;
+          
+          // Try to get existing crop and create missing varieties
+          try {
+            const existingCrops = await storage.getAllCropsWithVarieties();
+            const existingCrop = existingCrops.find(c => c.name === cropName);
+            
+            if (existingCrop) {
+              const existingVarietyCodes = existingCrop.varieties.map(v => v.code);
+              
+              for (const varietyCode of varietiesSet) {
+                if (!existingVarietyCodes.includes(varietyCode)) {
+                  try {
+                    await storage.createVariety({ 
+                      code: varietyCode, 
+                      cropId: existingCrop.id 
+                    });
+                    createdVarieties++;
+                  } catch (error) {
+                    skippedVarieties++;
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error processing existing crop:", error);
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        totalProducts: products.length,
+        results: {
+          createdCrops,
+          skippedCrops,
+          createdVarieties,
+          skippedVarieties
+        }
+      });
+    } catch (error) {
+      console.error("Seed crops/varieties error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Serve uploaded files
   app.get("/api/files/:filename", (req, res) => {
     const { filename } = req.params;
