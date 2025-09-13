@@ -422,7 +422,7 @@ export default function AdminDashboard() {
         "Total Packets",
         "Lot/Batch",
         "Lot No",
-        "Stack No",
+        // "Stack No",
         "Manufacturing Date",
         "Expiry Date",
         "Date of Test",
@@ -432,20 +432,20 @@ export default function AdminDashboard() {
         "Marketed By",
         "Brochure URL",
         "Brochure Filename",
-        "Location",
+        // "Location",
         "From",
         "To",
-        "Marketing Code",
-        "Unit of Measure Code",
+        // "Marketing Code",
+        // "Unit of Measure Code",
         "Market Code",
         "Product Code",
-        "Stage Code",
-        "Remaining Quantity",
-        "Normal Germination (%)",
-        "Germination Average",
+        // "Stage Code",
+        // "Remaining Quantity",
+        // "Normal Germination (%)",
+        // "Germination Average",
         "GB",
-        "GOT Percent",
-        "GOT Average",
+        // "GOT Percent",
+        // "GOT Average",
         "Status",
         "Submission Date",
         "Approval Date",
@@ -473,9 +473,10 @@ export default function AdminDashboard() {
         };
       });
 
-      // Set column widths for better spacing - updated for all new columns
-      const columnWidths = [15, 25, 20, 25, 40, 12, 12, 15, 12, 12, 12, 15, 15, 15, 18, 15, 15, 20, 25, 35, 25, 30, 25, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 12, 15, 15, 12, 15, 15, 30, 20, 40];
-      columnWidths.forEach((width, index) => {
+      // Set column widths for better spacing - dynamically sized to match headers
+      const columnWidths = [15, 25, 20, 25, 40, 12, 12, 15, 12, 12, 12, 15, 15, 18, 15, 15, 20, 25, 35, 25, 30, 25, 15, 15, 15, 15, 12, 12, 15, 15, 30, 20, 40];
+      headers.forEach((_, index) => {
+        const width = columnWidths[index] || 15; // Use default width of 15 if not specified
         worksheet.getColumn(index + 1).width = width;
       });
 
@@ -501,7 +502,7 @@ export default function AdminDashboard() {
           product.totalPkts || "",
           product.lotBatch || "",
           product.lotNo || "",
-          product.stackNo || "",
+          // product.stackNo || "",
           product.mfgDate || "",
           product.expiryDate || "",
           product.dateOfTest || "",
@@ -511,20 +512,20 @@ export default function AdminDashboard() {
           product.marketedBy || "",
           product.brochureUrl || "",
           product.brochureFilename || "",
-          product.location || "",
+          // product.location || "",
           product.from || "",
           product.to || "",
-          product.marketingCode || "",
-          product.unitOfMeasureCode || "",
+          // product.marketingCode || "",
+          // product.unitOfMeasureCode || "",
           product.marketCode || "",
           product.prodCode || "",
-          product.stageCode || "",
-          product.remainingQuantity || "",
-          product.normalGermination || "",
-          product.gerAve || "",
+          // product.stageCode || "",
+          // product.remainingQuantity || "",
+          // product.normalGermination || "",
+          // product.gerAve || "",
           product.gb || "",
-          product.gotPercent || "",
-          product.gotAve || "",
+          // product.gotPercent || "",
+          // product.gotAve || "",
           product.status || "",
           product.submissionDate ? new Date(product.submissionDate).toLocaleDateString() : "",
           product.approvalDate ? new Date(product.approvalDate).toLocaleDateString() : "",
@@ -546,8 +547,12 @@ export default function AdminDashboard() {
           cell.alignment = { vertical: 'middle', wrapText: true };
         });
 
+        // Dynamically find QR Code and Tracking URL column indices
+        const qrCodeColIndex = headers.indexOf("QR Code") + 1; // 1-indexed for Excel
+        const trackingUrlColIndex = headers.indexOf("Tracking URL") + 1; // 1-indexed for Excel
+
         // Add QR code image if available
-        if (qrCodeDataUrl) {
+        if (qrCodeDataUrl && qrCodeColIndex > 0) {
           try {
             // Extract base64 data from data URL
             const base64Data = qrCodeDataUrl.split(',')[1];
@@ -557,9 +562,9 @@ export default function AdminDashboard() {
               extension: 'png',
             });
 
-            // Add image to the QR Code column (column 42, row index + 2 because header is row 1)
+            // Add image to the QR Code column (dynamic column, row index + 2 because header is row 1)
             worksheet.addImage(imageId, {
-              tl: { col: 41, row: i + 1 }, // 0-indexed column, 0-indexed row (QR Code is now column 42)
+              tl: { col: qrCodeColIndex - 1, row: i + 1 }, // 0-indexed column for image positioning
               ext: { width: 80, height: 80 }
             });
 
@@ -568,17 +573,21 @@ export default function AdminDashboard() {
           } catch (error) {
             console.error('Error adding QR code image:', error);
             // Fallback to text if image fails
-            row.getCell(42).value = "QR Code Error";
+            if (qrCodeColIndex > 0) {
+              row.getCell(qrCodeColIndex).value = "QR Code Error";
+            }
           }
         }
 
         // Make tracking URL a clickable hyperlink
-        const trackingCell = row.getCell(43);
-        trackingCell.value = {
-          text: trackingUrl,
-          hyperlink: trackingUrl
-        };
-        trackingCell.font = { color: { argb: 'FF0066CC' }, underline: true };
+        if (trackingUrlColIndex > 0) {
+          const trackingCell = row.getCell(trackingUrlColIndex);
+          trackingCell.value = {
+            text: trackingUrl,
+            hyperlink: trackingUrl
+          };
+          trackingCell.font = { color: { argb: 'FF0066CC' }, underline: true };
+        }
       }
 
       // Freeze the header row
