@@ -157,7 +157,7 @@ export default function PublicProduct() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div className="bg-muted rounded-lg p-4">
                 <h4 className="font-semibold text-foreground mb-2">Brand</h4>
-                <p className="text-muted-foreground" data-testid="text-brand">{product.brand}</p>
+                <p className="text-muted-foreground" data-testid="text-brand">{product.marketCode}</p>
               </div>
               
               <div className="bg-muted rounded-lg p-4">
@@ -257,9 +257,9 @@ export default function PublicProduct() {
                 <div className="bg-muted rounded-lg p-4">
                   <h4 className="font-semibold text-foreground mb-2">Distribution Range</h4>
                   <p className="text-muted-foreground" data-testid="text-distribution-range">
-                    {product.from && `From: ${product.from}`}
+                    {product.from && `No. From: ${product.from}`}
                     {product.from && product.to && " | "}
-                    {product.to && `To: ${product.to}`}
+                    {product.to && `No. To: ${product.to}`}
                   </p>
                 </div>
               )}
@@ -277,7 +277,7 @@ export default function PublicProduct() {
                 
                 {product.marketCode && (
                   <div className="bg-muted rounded-lg p-4">
-                    <h4 className="font-semibold text-foreground mb-2">Market Code</h4>
+                    <h4 className="font-semibold text-foreground mb-2">Variety</h4>
                     <p className="text-muted-foreground font-mono" data-testid="text-market-code">{product.marketCode}</p>
                   </div>
                 )}

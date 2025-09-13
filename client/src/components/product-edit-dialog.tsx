@@ -605,7 +605,7 @@ export default function ProductEditDialog({
                 name="from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>From</FormLabel>
+                    <FormLabel>No. From</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-from" />
                     </FormControl>
@@ -619,7 +619,7 @@ export default function ProductEditDialog({
                 name="to"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>To</FormLabel>
+                    <FormLabel>No. To</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-edit-to" />
                     </FormControl>
@@ -650,7 +650,7 @@ export default function ProductEditDialog({
                 name="marketCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Market Code *</FormLabel>
+                    <FormLabel>Variety *</FormLabel>
                     <FormControl>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger data-testid="select-edit-market-code">
