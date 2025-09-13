@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import ProductCard from "@/components/product-card";
 import ProductEditDialog from "@/components/product-edit-dialog";
+import CropVarietyManagement from "@/components/crop-variety-management";
 import Sidebar, { SidebarItem } from "@/components/sidebar";
 
 const createUserSchema = z.object({
@@ -276,6 +277,13 @@ export default function AdminDashboard() {
       icon: <Users className="h-4 w-4" />,
       onClick: () => setActiveTab("users"),
       active: activeTab === "users",
+    },
+    {
+      id: "crops",
+      label: "Crop & Variety Management",
+      icon: <BarChart3 className="h-4 w-4" />,
+      onClick: () => setActiveTab("crops"),
+      active: activeTab === "crops",
     },
   ];
 
@@ -692,12 +700,12 @@ export default function AdminDashboard() {
 
           {activeTab === "overview" && renderOverview()}
           
-          {["pending", "approved", "rejected", "all", "users"].map((tab) => 
+          {["pending", "approved", "rejected", "all", "users", "crops"].map((tab) => 
             activeTab === tab && (
               <div key={tab} className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold text-foreground capitalize">
-                    {tab === "all" ? "All Products" : tab === "users" ? "User Management" : `${tab} Products`}
+                    {tab === "all" ? "All Products" : tab === "users" ? "User Management" : tab === "crops" ? "Crop & Variety Management" : `${tab} Products`}
                   </h2>
                   {tab === "users" && (
                     <Button 
@@ -783,6 +791,8 @@ export default function AdminDashboard() {
                       ))}
                     </div>
                   )
+                ) : tab === "crops" ? (
+                  <CropVarietyManagement />
                 ) : (
                   (() => {
                     const isLoading = tab === "pending" ? pendingLoading : 

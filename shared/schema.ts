@@ -62,6 +62,31 @@ export const products = pgTable("products", {
   rejectionReason: text("rejection_reason"),
 });
 
+// Crops and varieties management tables
+export const crops = pgTable("crops", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const varieties = pgTable("varieties", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  cropId: uuid("crop_id").notNull().references(() => crops.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const cropsRelations = relations(crops, ({ many }) => ({
+  varieties: many(varieties),
+}));
+
+export const varietiesRelations = relations(varieties, ({ one }) => ({
+  crop: one(crops, {
+    fields: [varieties.cropId],
+    references: [crops.id],
+  }),
+}));
+
 export const productsRelations = relations(products, ({ one }) => ({
   submittedByUser: one(users, {
     fields: [products.submittedBy],
@@ -121,7 +146,22 @@ export const insertProductSchema = createInsertSchema(products).omit({
   stackNo: z.string().nullable().optional(),
 });
 
+// Crop and variety schemas
+export const insertCropSchema = createInsertSchema(crops).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertVarietySchema = createInsertSchema(varieties).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
+export type InsertCrop = z.infer<typeof insertCropSchema>;
+export type Crop = typeof crops.$inferSelect;
+export type InsertVariety = z.infer<typeof insertVarietySchema>;
+export type Variety = typeof varieties.$inferSelect;

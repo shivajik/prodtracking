@@ -1,4 +1,4 @@
-import { users, products, type User, type InsertUser, type Product, type InsertProduct } from "@shared/schema";
+import { users, products, crops, varieties, type User, type InsertUser, type Product, type InsertProduct, type Crop, type InsertCrop, type Variety, type InsertVariety } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ilike } from "drizzle-orm";
 import session from "express-session";
@@ -25,6 +25,13 @@ export interface IStorage {
   updateProductStatus(id: string, status: string, approvedBy?: string, rejectionReason?: string): Promise<Product | undefined>;
   updateProduct(id: string, updates: Partial<Product>): Promise<Product | undefined>;
   deleteProduct(id: string): Promise<boolean>;
+  
+  // Crop and variety management
+  getAllCropsWithVarieties(): Promise<(Crop & { varieties: Variety[] })[]>;
+  createCrop(crop: InsertCrop): Promise<Crop>;
+  deleteCrop(id: string): Promise<boolean>;
+  createVariety(variety: InsertVariety): Promise<Variety>;
+  deleteVariety(id: string): Promise<boolean>;
   
   sessionStore: session.Store;
 }
@@ -220,6 +227,64 @@ export class DatabaseStorage implements IStorage {
       .where(eq(products.id, id));
     
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Crop and variety management implementations
+  async getAllCropsWithVarieties(): Promise<(Crop & { varieties: Variety[] })[]> {
+    const cropsData = await db.select().from(crops).orderBy(crops.name);
+    
+    const result: (Crop & { varieties: Variety[] })[] = [];
+    
+    for (const crop of cropsData) {
+      const cropVarieties = await db
+        .select()
+        .from(varieties)
+        .where(eq(varieties.cropId, crop.id))
+        .orderBy(varieties.code);
+      
+      result.push({
+        ...crop,
+        varieties: cropVarieties
+      });
+    }
+    
+    return result;
+  }
+
+  async createCrop(crop: InsertCrop): Promise<Crop> {
+    const [newCrop] = await db
+      .insert(crops)
+      .values(crop)
+      .returning();
+    return newCrop;
+  }
+
+  async deleteCrop(id: string): Promise<boolean> {
+    try {
+      const result = await db.delete(crops).where(eq(crops.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting crop:', error);
+      return false;
+    }
+  }
+
+  async createVariety(variety: InsertVariety): Promise<Variety> {
+    const [newVariety] = await db
+      .insert(varieties)
+      .values(variety)
+      .returning();
+    return newVariety;
+  }
+
+  async deleteVariety(id: string): Promise<boolean> {
+    try {
+      const result = await db.delete(varieties).where(eq(varieties.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting variety:', error);
+      return false;
+    }
   }
 }
 

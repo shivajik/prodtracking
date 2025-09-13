@@ -696,6 +696,117 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Crop and variety management endpoints
+  
+  // Get all crops with their varieties
+  app.get("/api/crops", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const crops = await storage.getAllCropsWithVarieties();
+      res.json(crops);
+    } catch (error) {
+      console.error("Get crops error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new crop (admin only)
+  app.post("/api/crops", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { name } = req.body;
+      if (!name || typeof name !== "string" || name.trim() === "") {
+        return res.status(400).json({ message: "Crop name is required" });
+      }
+
+      const crop = await storage.createCrop({ name: name.trim() });
+      res.status(201).json(crop);
+    } catch (error) {
+      console.error("Create crop error:", error);
+      if (error instanceof Error && error.message.includes("unique")) {
+        return res.status(400).json({ message: "Crop name already exists" });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete crop (admin only)
+  app.delete("/api/crops/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteCrop(id);
+
+      if (!success) {
+        return res.status(404).json({ message: "Crop not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete crop error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new variety (admin only)
+  app.post("/api/varieties", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { code, cropId } = req.body;
+      if (!code || typeof code !== "string" || code.trim() === "") {
+        return res.status(400).json({ message: "Variety code is required" });
+      }
+      if (!cropId || typeof cropId !== "string") {
+        return res.status(400).json({ message: "Crop ID is required" });
+      }
+
+      const variety = await storage.createVariety({ 
+        code: code.trim(), 
+        cropId 
+      });
+      res.status(201).json(variety);
+    } catch (error) {
+      console.error("Create variety error:", error);
+      if (error instanceof Error && error.message.includes("unique")) {
+        return res.status(400).json({ message: "Variety code already exists" });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete variety (admin only)
+  app.delete("/api/varieties/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteVariety(id);
+
+      if (!success) {
+        return res.status(404).json({ message: "Variety not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete variety error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Serve uploaded files
   app.get("/api/files/:filename", (req, res) => {
     const { filename } = req.params;
