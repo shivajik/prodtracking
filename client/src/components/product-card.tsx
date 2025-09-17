@@ -94,14 +94,15 @@ export default function ProductCard({
           </div>
         )}
         
-        <div className="flex justify-end space-x-3">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button 
             variant="outline" 
             size="sm"
             onClick={() => setShowViewDialog(true)}
             data-testid="button-view-details"
+            className="flex-shrink-0"
           >
-            <Eye className="h-4 w-4 mr-2" />
+            <Eye className="h-4 w-4 mr-1" />
             View Details
           </Button>
           
@@ -111,8 +112,9 @@ export default function ProductCard({
               size="sm"
               onClick={onViewPublic}
               data-testid="button-view-public"
+              className="flex-shrink-0"
             >
-              <Package className="h-4 w-4 mr-2" />
+              <Package className="h-4 w-4 mr-1" />
               View Public Page
             </Button>
           )}
@@ -125,8 +127,9 @@ export default function ProductCard({
               onClick={onEdit}
               disabled={isLoading}
               data-testid="button-edit"
+              className="flex-shrink-0"
             >
-              <Edit className="h-4 w-4 mr-2" />
+              <Edit className="h-4 w-4 mr-1" />
               Edit
             </Button>
           )}
@@ -138,8 +141,9 @@ export default function ProductCard({
               onClick={onReject}
               disabled={isLoading}
               data-testid="button-reject"
+              className="flex-shrink-0"
             >
-              <X className="h-4 w-4 mr-2" />
+              <X className="h-4 w-4 mr-1" />
               Reject
             </Button>
           )}
@@ -150,8 +154,9 @@ export default function ProductCard({
               onClick={onApprove}
               disabled={isLoading}
               data-testid="button-approve"
+              className="flex-shrink-0"
             >
-              <Check className="h-4 w-4 mr-2" />
+              <Check className="h-4 w-4 mr-1" />
               Approve
             </Button>
           )}

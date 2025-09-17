@@ -730,7 +730,8 @@ export default function AdminDashboard() {
                           data-testid="button-card-view"
                           className="h-8 px-3"
                         >
-                          <Grid3X3 className="h-4 w-4" />
+                          <Grid3X3 className="h-4 w-4 mr-1" />
+                          Card
                         </Button>
                         <Button
                           size="sm"
@@ -739,7 +740,8 @@ export default function AdminDashboard() {
                           data-testid="button-list-view"
                           className="h-8 px-3"
                         >
-                          <LayoutList className="h-4 w-4" />
+                          <LayoutList className="h-4 w-4 mr-1" />
+                          List View
                         </Button>
                       </div>
                     )}
