@@ -26,7 +26,7 @@ const productFormSchema = insertProductSchema.omit({
   company: z.string().optional(),
   brand: z.string().optional(),
   cropName: z.string().min(1, "Crop name is required"),
-  marketCode: z.string().optional(),
+  marketCode: z.string().min(1, "Market code is required"),
   lotNo: z.string().min(1, "Lot number is required"),
   // All other fields are optional
   description: z.string().optional(),
@@ -131,7 +131,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
     setSelectedCrop(cropName);
     form.setValue("cropName", cropName);
     // Reset market code when crop changes - commented out since field is now hidden
-    // form.setValue("marketCode", "");
+    form.setValue("marketCode", "");
   };
 
   const submitProductMutation = useMutation({
@@ -352,7 +352,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   </FormItem>
                 )}
               />
-              {/* Variety form field - commented out as requested
+              {/* {/* Variety form field - commented out as requested */}
               <FormField
                 control={form.control}
                 name="marketCode"
@@ -385,7 +385,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   </FormItem>
                 )}
               />
-              */}
+              
 
               <FormField
                 control={form.control}

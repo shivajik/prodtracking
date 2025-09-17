@@ -319,7 +319,7 @@ export default function PublicProduct() {
             )}
             
             {/* Quality Information */}
-            {(product.normalGermination || product.gerAve || product.gotPercent || product.gotAve || product.gb || product.remainingQuantity) && (
+            {/* {(product.normalGermination || product.gerAve || product.gotPercent || product.gotAve || product.gb || product.remainingQuantity) && (
               <div>
                 <h3 className="text-lg font-semibold mb-4">Quality & Testing Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
@@ -366,7 +366,7 @@ export default function PublicProduct() {
                   )}
                 </div>
               </div>
-            )}
+            )} */}
           </CardContent>
         </Card>
 

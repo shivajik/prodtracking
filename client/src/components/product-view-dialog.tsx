@@ -71,10 +71,10 @@ export default function ProductViewDialog({
                 <p className="text-sm font-medium text-muted-foreground">Company</p>
                 <p className="font-medium" data-testid="view-company">{product.company || "Not specified"}</p>
               </div>
-              <div>
+              {/* <div>
                 <p className="text-sm font-medium text-muted-foreground">Brand</p>
                 <p className="font-medium" data-testid="view-brand">{product.brand || "Not specified"}</p>
-              </div>
+              </div> */}
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Variety</p>
                 <p className="font-medium font-mono" data-testid="view-market-code">{product.marketCode || "Not specified"}</p>
@@ -88,7 +88,7 @@ export default function ProductViewDialog({
                 <p className="font-medium text-lg" data-testid="view-mrp">{formatPrice(product.mrp)}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Unit Sale Price</p>
+                <p className="text-sm font-medium text-muted-foreground">Unit Sale Price (₹) Per Kg.</p>
                 <p className="font-medium" data-testid="view-unit-sale-price">{formatPrice(product.unitSalePrice)}</p>
               </div>
             </div>
@@ -112,11 +112,11 @@ export default function ProductViewDialog({
                 <p className="font-medium" data-testid="view-net-qty">{product.netQty || "Not specified"}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Pack Size</p>
+                <p className="text-sm font-medium text-muted-foreground">Pack Size (KG)</p>
                 <p className="font-medium" data-testid="view-pack-size">{product.packSize || "Not specified"}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Number of Packets</p>
+                <p className="text-sm font-medium text-muted-foreground">No. of Packets</p>
                 <p className="font-medium" data-testid="view-no-of-pkts">{product.noOfPkts || "Not specified"}</p>
               </div>
               <div>
@@ -131,11 +131,11 @@ export default function ProductViewDialog({
                 <p className="text-sm font-medium text-muted-foreground">Label No. To</p>
                 <p className="font-medium" data-testid="view-to">{product.to || "Not specified"}</p>
               </div>
-              <div>
+              {/* <div>
                 <p className="text-sm font-medium text-muted-foreground">GB</p>
                 <p className="font-medium" data-testid="view-gb">{product.gb || "Not specified"}</p>
               </div>
-              {/* <div>
+              <div>
                 <p className="text-sm font-medium text-muted-foreground">Stack Number</p>
                 <p className="font-medium" data-testid="view-stack-no">{product.stackNo || "Not specified"}</p>
               </div> */}
@@ -160,11 +160,11 @@ export default function ProductViewDialog({
                 <p className="font-medium font-mono" data-testid="view-lot-no">{product.lotNo || "Not specified"}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Manufacturing Date</p>
+                <p className="text-sm font-medium text-muted-foreground">Date of Packing</p>
                 <p className="font-medium" data-testid="view-mfg-date">{(product.mfgDate)}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Expiry Date</p>
+                <p className="text-sm font-medium text-muted-foreground">Valid Upto</p>
                 <p className="font-medium" data-testid="view-expiry-date">{(product.expiryDate)}</p>
               </div>
               <div>
