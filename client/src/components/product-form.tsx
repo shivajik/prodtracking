@@ -26,7 +26,7 @@ const productFormSchema = insertProductSchema.omit({
   company: z.string().optional(),
   brand: z.string().optional(),
   cropName: z.string().min(1, "Crop name is required"),
-  marketCode: z.string().min(1, "Market code is required"),
+  marketCode: z.string().optional(),
   lotNo: z.string().min(1, "Lot number is required"),
   // All other fields are optional
   description: z.string().optional(),
@@ -61,6 +61,7 @@ const productFormSchema = insertProductSchema.omit({
   gotPercent: z.string().optional(),
   gotAve: z.string().optional(),
   labelNumber: z.string().optional(),
+  classType: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -83,7 +84,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
-      company: "",
+      company: "Green Gold Seeds Pvt. Ltd.",
       brand: "",
       cropName: "",
       description: "",
@@ -93,10 +94,10 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
       mfgDate: "",
       expiryDate: "",
       uniqueId: "",
-      customerCare: "",
-      email: "",
-      companyAddress: "",
-      marketedBy: "",
+      customerCare: "+91 88888 66031",
+      email: "greengoldseeds@rediffmail.com",
+      companyAddress: "Gut No. 65, Narayanpur Shivar, Waluj, Gangapur Dist: Chh. Sambhajinagar-431001",
+      marketedBy: "Green Gold Seeds Pvt. Ltd.",
       brochureUrl: "",
       brochureFilename: "",
       packSize: "",
@@ -120,6 +121,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
       gotPercent: "",
       gotAve: "",
       labelNumber: "",
+      classType: "",
     },
   });
 
@@ -128,8 +130,8 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
   const handleCropChange = (cropName: string) => {
     setSelectedCrop(cropName);
     form.setValue("cropName", cropName);
-    // Reset market code when crop changes
-    form.setValue("marketCode", "");
+    // Reset market code when crop changes - commented out since field is now hidden
+    // form.setValue("marketCode", "");
   };
 
   const submitProductMutation = useMutation({
@@ -350,6 +352,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   </FormItem>
                 )}
               />
+              {/* Variety form field - commented out as requested
               <FormField
                 control={form.control}
                 name="marketCode"
@@ -375,6 +378,30 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                           ) : (
                             <div className="p-2 text-center text-muted-foreground">No varieties available for selected crop</div>
                           )}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              */}
+
+              <FormField
+                control={form.control}
+                name="classType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger data-testid="select-class-type">
+                          <SelectValue placeholder="Select class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="trustful">Trustful</SelectItem>
+                          <SelectItem value="certified">Certified</SelectItem>
+                          <SelectItem value="foundation">Foundation</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>

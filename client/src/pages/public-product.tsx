@@ -156,9 +156,16 @@ export default function PublicProduct() {
             {/* Basic Product Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div className="bg-muted rounded-lg p-4">
-                <h4 className="font-semibold text-foreground mb-2">Brand</h4>
+                <h4 className="font-semibold text-foreground mb-2">Variety</h4>
                 <p className="text-muted-foreground" data-testid="text-brand">{product.marketCode}</p>
               </div>
+              
+              {product.classType && (
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">Class</h4>
+                  <p className="text-muted-foreground capitalize" data-testid="text-class-type">{product.classType}</p>
+                </div>
+              )}
               
               <div className="bg-muted rounded-lg p-4">
                 <h4 className="font-semibold text-foreground mb-2">Net Quantity</h4>
@@ -166,7 +173,7 @@ export default function PublicProduct() {
               </div>
               
               <div className="bg-muted rounded-lg p-4">
-                <h4 className="font-semibold text-foreground mb-2">Pack Size</h4>
+                <h4 className="font-semibold text-foreground mb-2">Pack Size (KG)</h4>
                 <p className="text-muted-foreground" data-testid="text-pack-size">{product.packSize || "N/A"}</p>
               </div>
               
@@ -187,14 +194,14 @@ export default function PublicProduct() {
               
               {product.unitSalePrice && (
                 <div className="bg-muted rounded-lg p-4">
-                  <h4 className="font-semibold text-foreground mb-2">Unit Sale Price (₹)</h4>
+                  <h4 className="font-semibold text-foreground mb-2">Unit Sale Price (₹) Per Kg.</h4>
                   <p className="text-muted-foreground" data-testid="text-unit-sale-price">₹{product.unitSalePrice}</p>
                 </div>
               )}
               
               {(product.noOfPkts || product.totalPkts) && (
                 <div className="bg-muted rounded-lg p-4">
-                  <h4 className="font-semibold text-foreground mb-2">Package Count</h4>
+                  <h4 className="font-semibold text-foreground mb-2">No. of Packets</h4>
                   <p className="text-muted-foreground" data-testid="text-package-count">
                     {product.noOfPkts && `${product.noOfPkts} packets`}
                     {product.noOfPkts && product.totalPkts && " / "}
@@ -206,10 +213,12 @@ export default function PublicProduct() {
             
             {/* Batch and Lot Information */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              {/* Batch No. - commented out as requested
               <div className="bg-muted rounded-lg p-4">
                 <h4 className="font-semibold text-foreground mb-2">Batch No.</h4>
                 <p className="text-muted-foreground font-mono" data-testid="text-batch-no">{product.lotBatch}</p>
               </div>
+              */}
               
               {product.lotNo && (
                 <div className="bg-muted rounded-lg p-4">
@@ -229,12 +238,12 @@ export default function PublicProduct() {
             {/* Date Information */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="bg-muted rounded-lg p-4">
-                <h4 className="font-semibold text-foreground mb-2">Manufacturing Date</h4>
+                <h4 className="font-semibold text-foreground mb-2">Date of Packing</h4>
                 <p className="text-muted-foreground" data-testid="text-mfg-date">{product.mfgDate}</p>
               </div>
               
               <div className="bg-muted rounded-lg p-4">
-                <h4 className="font-semibold text-foreground mb-2">Expiry Date</h4>
+                <h4 className="font-semibold text-foreground mb-2">Valid Upto</h4>
                 <p className="text-muted-foreground" data-testid="text-expiry-date">{product.expiryDate}</p>
               </div>
               
@@ -249,13 +258,13 @@ export default function PublicProduct() {
             {/* Marketing and Distribution */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="bg-muted rounded-lg p-4">
-                <h4 className="font-semibold text-foreground mb-2">Marketed By</h4>
+                <h4 className="font-semibold text-foreground mb-2">Produced/Packed/Marketed by</h4>
                 <p className="text-muted-foreground" data-testid="text-marketed-by">{product.marketedBy}</p>
               </div>
               
               {(product.from || product.to) && (
                 <div className="bg-muted rounded-lg p-4">
-                  <h4 className="font-semibold text-foreground mb-2">Distribution Range</h4>
+                  <h4 className="font-semibold text-foreground mb-2">Label No.</h4>
                   <p className="text-muted-foreground" data-testid="text-distribution-range">
                     {product.from && `Label No. From: ${product.from}`}
                     {product.from && product.to && " | "}
@@ -275,19 +284,23 @@ export default function PublicProduct() {
                   </div>
                 )}
                 
+                {/* Variety code - commented out as requested
                 {product.marketCode && (
                   <div className="bg-muted rounded-lg p-4">
                     <h4 className="font-semibold text-foreground mb-2">Variety</h4>
                     <p className="text-muted-foreground font-mono" data-testid="text-market-code">{product.marketCode}</p>
                   </div>
                 )}
+                */}
                 
+                {/* Product Code - commented out as requested
                 {product.prodCode && (
                   <div className="bg-muted rounded-lg p-4">
                     <h4 className="font-semibold text-foreground mb-2">Product Code</h4>
                     <p className="text-muted-foreground font-mono" data-testid="text-prod-code">{product.prodCode}</p>
                   </div>
                 )}
+                */}
                 
                 {product.unitOfMeasureCode && (
                   <div className="bg-muted rounded-lg p-4">
