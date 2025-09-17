@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Clock, CheckCircle, XCircle, List, Eye, Check, X, Users, Plus, BarChart3, Home, Download, Search, Upload } from "lucide-react";
+import { Clock, CheckCircle, XCircle, List, Eye, Check, X, Users, Plus, BarChart3, Home, Download, Search, Upload, Grid3X3, LayoutList, Edit } from "lucide-react";
 import { Product, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -43,6 +43,7 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
 
   const createUserForm = useForm<CreateUserData>({
     resolver: zodResolver(createUserSchema),
@@ -254,7 +255,7 @@ export default function AdminDashboard() {
       label: "Pending Products",
       icon: <Clock className="h-4 w-4" />,
       onClick: () => setActiveTab("pending"),
-      badge: pendingProducts.length,
+      badge: pendingProducts.length > 0 ? pendingProducts.length : undefined,
       active: activeTab === "pending",
     },
     {
@@ -262,6 +263,7 @@ export default function AdminDashboard() {
       label: "Approved Products",
       icon: <CheckCircle className="h-4 w-4" />,
       onClick: () => setActiveTab("approved"),
+      badge: approvedProducts.length > 0 ? approvedProducts.length : undefined,
       active: activeTab === "approved",
     },
     {
@@ -269,6 +271,7 @@ export default function AdminDashboard() {
       label: "Rejected Products",
       icon: <XCircle className="h-4 w-4" />,
       onClick: () => setActiveTab("rejected"),
+      badge: rejectedProducts.length > 0 ? rejectedProducts.length : undefined,
       active: activeTab === "rejected",
     },
     {
@@ -716,35 +719,64 @@ export default function AdminDashboard() {
                   <h2 className="text-2xl font-bold text-foreground capitalize">
                     {tab === "all" ? "All Products" : tab === "users" ? "User Management" : `${tab} Products`}
                   </h2>
-                  {tab === "users" && (
-                    <Button 
-                      onClick={() => setShowCreateUserDialog(true)}
-                      data-testid="button-create-user"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Operator
-                    </Button>
-                  )}
-                  {tab === "all" && (
-                    <div className="flex gap-2">
+                  <div className="flex items-center gap-4">
+                    {/* View Toggle for Product Tabs */}
+                    {tab !== "users" && (
+                      <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+                        <Button
+                          size="sm"
+                          variant={viewMode === "card" ? "secondary" : "ghost"}
+                          onClick={() => setViewMode("card")}
+                          data-testid="button-card-view"
+                          className="h-8 px-3"
+                        >
+                          <Grid3X3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={viewMode === "list" ? "secondary" : "ghost"}
+                          onClick={() => setViewMode("list")}
+                          data-testid="button-list-view"
+                          className="h-8 px-3"
+                        >
+                          <LayoutList className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* User Management Button */}
+                    {tab === "users" && (
                       <Button 
-                        onClick={() => setShowImportDialog(true)}
-                        data-testid="button-import"
-                        variant="outline"
+                        onClick={() => setShowCreateUserDialog(true)}
+                        data-testid="button-create-user"
                       >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Import
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Operator
                       </Button>
-                      <Button 
-                        onClick={() => exportToExcel(allProducts)}
-                        data-testid="button-export-excel"
-                        variant="outline"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Export All
-                      </Button>
-                    </div>
-                  )}
+                    )}
+                    
+                    {/* All Products Action Buttons */}
+                    {tab === "all" && (
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => setShowImportDialog(true)}
+                          data-testid="button-import"
+                          variant="outline"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Import
+                        </Button>
+                        <Button 
+                          onClick={() => exportToExcel(allProducts)}
+                          data-testid="button-export-excel"
+                          variant="outline"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Export All
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Search Input for Products */}
@@ -831,8 +863,9 @@ export default function AdminDashboard() {
                       );
                     }
                     
-                    return (
-                      <div className="grid gap-6">
+                    return viewMode === "card" ? (
+                      // Card View - Multiple cards per row on desktop
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {products.map((product) => (
                           <ProductCard
                             key={product.id}
@@ -843,6 +876,102 @@ export default function AdminDashboard() {
                             onEdit={() => handleEdit(product)}
                             isLoading={approveProductMutation.isPending || rejectProductMutation.isPending || editProductMutation.isPending}
                           />
+                        ))}
+                      </div>
+                    ) : (
+                      // List View - Horizontal layout with smaller height
+                      <div className="space-y-4">
+                        {products.map((product) => (
+                          <div key={product.id} className="bg-card border border-border rounded-lg p-4 hover:shadow-sm transition-shadow" data-testid={`row-product-${product.id}`}>
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="text-base font-semibold text-foreground truncate" data-testid="text-product-name">
+                                      {product.product}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground truncate">
+                                      <span data-testid="text-brand">{product.marketCode}</span> • 
+                                      <span data-testid="text-company"> {product.company}</span>
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <div className="text-right">
+                                      <p className="font-medium text-foreground">MRP: ₹{product.mrp}</p>
+                                      <p className="text-xs">Qty: {product.netQty}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-medium text-foreground">Batch: {product.lotBatch}</p>
+                                      <p className="text-xs">ID: {product.uniqueId}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-3">
+                                <div data-testid="badge-status">
+                                  {(() => {
+                                    switch (product.status) {
+                                      case "approved":
+                                        return <Badge className="bg-primary/10 text-primary">Approved</Badge>;
+                                      case "rejected":
+                                        return <Badge variant="destructive">Rejected</Badge>;
+                                      default:
+                                        return <Badge variant="secondary">Pending</Badge>;
+                                    }
+                                  })()}
+                                </div>
+                                
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setSelectedProduct(product)}
+                                    data-testid="button-view-details"
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleViewPublicPage(product.uniqueId)}
+                                    data-testid="button-view-public"
+                                  >
+                                    View Public Page
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEdit(product)}
+                                    data-testid="button-edit"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  {tab === "pending" && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApprove(product.id)}
+                                        disabled={approveProductMutation.isPending}
+                                        data-testid="button-approve"
+                                      >
+                                        <Check className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => handleReject(product)}
+                                        disabled={rejectProductMutation.isPending}
+                                        data-testid="button-reject"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     );
