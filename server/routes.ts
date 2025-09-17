@@ -111,6 +111,30 @@ export function registerRoutes(app: Express): Server {
     const timestamp = Date.now().toString().slice(-6);
     return `GGS-${year}-${timestamp}`;
   }
+function normalizeProductData(data: Record<string, any>) {
+  const numericFields = [
+    "mrp",
+    "unitSalePrice",
+    "noOfPkts",
+    "totalPkts",
+    "gb",
+    "remainingQuantity",
+    "normalGermination",
+    "gerAve",
+    "gotPercent",
+    "gotAve",
+  ];
+
+  for (const field of numericFields) {
+    if (data[field] === "" || data[field] === undefined) {
+      data[field] = null;
+    }
+  }
+
+  return data;
+}
+
+
 
   // Product routes
   app.post("/api/products", upload.single("brochure"), async (req, res) => {
@@ -138,9 +162,12 @@ export function registerRoutes(app: Express): Server {
         productData.brochureFilename = req.file.originalname;
       }
 
+
+      const normalizedData = normalizeProductData(productData);
+
       // Validate product data
       const validatedData = insertProductSchema.parse({
-        ...productData,
+        ...normalizedData,
         submittedBy: req.user.id,
       });
 
