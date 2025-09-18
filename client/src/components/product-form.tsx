@@ -887,7 +887,7 @@ useEffect(() => {
               <Label>Brochure (Attachment)</Label>
               
               {/* Show predefined URL if available */}
-              {cropVarietyUrl && !urlLoading ? (
+              {cropVarietyUrl && !urlLoading && !hidePredefinedUrl ? (
                 <div className="mt-1 p-4 border-2 border-green-200 rounded-md bg-green-50">
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
@@ -900,17 +900,11 @@ useEffect(() => {
                         href={cropVarietyUrl.url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="ml-1 text-blue-600 hover:text-blue-800 underline break-all"
-                        data-testid="predefined-url-link"
+                        className="ml-1 text-blue-600 hover:text-blue-800 underline break-all" 
                       >
                         {cropVarietyUrl.url}
                       </a>
-                    </div>
-                    {cropVarietyUrl.description && (
-                      <div className="text-sm text-green-700">
-                        <strong>Description:</strong> {cropVarietyUrl.description}
-                      </div>
-                    )}
+                    </div> 
                   </div>
                 </div>
               ) : urlLoading ? (
