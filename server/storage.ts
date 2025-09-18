@@ -1,4 +1,4 @@
-import { users, products, crops, varieties, type User, type InsertUser, type Product, type InsertProduct, type Crop, type InsertCrop, type Variety, type InsertVariety } from "@shared/schema";
+import { users, products, crops, varieties, cropVarietyUrls, type User, type InsertUser, type Product, type InsertProduct, type Crop, type InsertCrop, type Variety, type InsertVariety, type CropVarietyUrl, type InsertCropVarietyUrl } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ilike } from "drizzle-orm";
 import session from "express-session";
@@ -32,6 +32,14 @@ export interface IStorage {
   deleteCrop(id: string): Promise<boolean>;
   createVariety(variety: InsertVariety): Promise<Variety>;
   deleteVariety(id: string): Promise<boolean>;
+  
+  // Crop-variety URL management
+  getCropVarietyUrl(cropId: string, varietyId: string): Promise<CropVarietyUrl | undefined>;
+  getAllCropVarietyUrls(): Promise<CropVarietyUrl[]>;
+  createCropVarietyUrl(cropVarietyUrl: InsertCropVarietyUrl): Promise<CropVarietyUrl>;
+  updateCropVarietyUrl(id: string, updates: Partial<CropVarietyUrl>): Promise<CropVarietyUrl | undefined>;
+  deleteCropVarietyUrl(id: string): Promise<boolean>;
+  getCropVarietyUrlByCropAndVarietyNames(cropName: string, varietyCode: string): Promise<CropVarietyUrl | undefined>;
   
   sessionStore: session.Store;
 }
@@ -285,6 +293,64 @@ export class DatabaseStorage implements IStorage {
       console.error('Error deleting variety:', error);
       return false;
     }
+  }
+
+  // Crop-variety URL management methods
+  async getCropVarietyUrl(cropId: string, varietyId: string): Promise<CropVarietyUrl | undefined> {
+    const [cropVarietyUrl] = await db
+      .select()
+      .from(cropVarietyUrls)
+      .where(and(eq(cropVarietyUrls.cropId, cropId), eq(cropVarietyUrls.varietyId, varietyId)));
+    return cropVarietyUrl || undefined;
+  }
+
+  async getAllCropVarietyUrls(): Promise<CropVarietyUrl[]> {
+    return await db.select().from(cropVarietyUrls);
+  }
+
+  async createCropVarietyUrl(cropVarietyUrl: InsertCropVarietyUrl): Promise<CropVarietyUrl> {
+    const [newCropVarietyUrl] = await db
+      .insert(cropVarietyUrls)
+      .values(cropVarietyUrl)
+      .returning();
+    return newCropVarietyUrl;
+  }
+
+  async updateCropVarietyUrl(id: string, updates: Partial<CropVarietyUrl>): Promise<CropVarietyUrl | undefined> {
+    const [updated] = await db
+      .update(cropVarietyUrls)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(cropVarietyUrls.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteCropVarietyUrl(id: string): Promise<boolean> {
+    try {
+      const result = await db.delete(cropVarietyUrls).where(eq(cropVarietyUrls.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting crop-variety URL:', error);
+      return false;
+    }
+  }
+
+  async getCropVarietyUrlByCropAndVarietyNames(cropName: string, varietyCode: string): Promise<CropVarietyUrl | undefined> {
+    const [result] = await db
+      .select({
+        id: cropVarietyUrls.id,
+        cropId: cropVarietyUrls.cropId,
+        varietyId: cropVarietyUrls.varietyId,
+        url: cropVarietyUrls.url,
+        description: cropVarietyUrls.description,
+        createdAt: cropVarietyUrls.createdAt,
+        updatedAt: cropVarietyUrls.updatedAt,
+      })
+      .from(cropVarietyUrls)
+      .innerJoin(crops, eq(cropVarietyUrls.cropId, crops.id))
+      .innerJoin(varieties, eq(cropVarietyUrls.varietyId, varieties.id))
+      .where(and(eq(crops.name, cropName), eq(varieties.code, varietyCode)));
+    return result || undefined;
   }
 }
 

@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCropNames, useVarietiesForCrop } from "@/hooks/use-crops-varieties";
+import { useCropVarietyUrl } from "@/hooks/use-crop-variety-url";
 import { insertProductSchema } from "@shared/schema";
 import { z } from "zod";
 import { CloudUpload, Send, RotateCcw, Upload } from "lucide-react";
@@ -76,10 +77,14 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [selectedCrop, setSelectedCrop] = useState<string>("");
+  const [selectedVariety, setSelectedVariety] = useState<string>("");
 
   // Fetch dynamic crop and variety data
   const { data: cropNames, isLoading: cropsLoading } = useCropNames();
   const { data: availableVarieties, isLoading: varietiesLoading } = useVarietiesForCrop(selectedCrop);
+  
+  // Fetch crop-variety URL when both crop and variety are selected
+  const { data: cropVarietyUrl, isLoading: urlLoading } = useCropVarietyUrl(selectedCrop, selectedVariety);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -129,9 +134,14 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
 
   const handleCropChange = (cropName: string) => {
     setSelectedCrop(cropName);
+    setSelectedVariety(""); // Reset variety when crop changes
     form.setValue("cropName", cropName);
-    // Reset market code when crop changes - commented out since field is now hidden
-    form.setValue("marketCode", "");
+    form.setValue("marketCode", ""); // Reset market code when crop changes
+  };
+
+  const handleVarietyChange = (varietyCode: string) => {
+    setSelectedVariety(varietyCode);
+    form.setValue("marketCode", varietyCode);
   };
 
   const submitProductMutation = useMutation({
@@ -360,7 +370,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
                   <FormItem>
                     <FormLabel>Variety</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select value={field.value} onValueChange={handleVarietyChange}>
                         <SelectTrigger data-testid="select-variety">
                           <SelectValue placeholder="Select variety" />
                         </SelectTrigger>
@@ -859,33 +869,70 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
               /> */}
             </div>
             
-            {/* File Upload */}
+            {/* Brochure Section - URL or File Upload */}
             <div>
-              <Label htmlFor="brochure">Brochure (Attachment)</Label>
-              <div className="mt-1 flex justify-center px-6 py-4 border-2 border-border border-dashed rounded-md hover:border-primary/50 transition-colors">
-                <div className="space-y-1 text-center">
-                  <CloudUpload className="h-8 w-8 text-muted-foreground mx-auto" />
-                  <div className="flex text-sm text-muted-foreground">
-                    <label htmlFor="brochure" className="relative cursor-pointer bg-background rounded-md font-medium text-primary hover:text-primary/80">
-                      <span>Upload a file</span>
-                      <input 
-                        id="brochure" 
-                        name="brochure" 
-                        type="file" 
-                        className="sr-only" 
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                        onChange={handleFileChange}
-                        data-testid="input-brochure"
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
+              <Label>Brochure (Attachment)</Label>
+              
+              {/* Show predefined URL if available */}
+              {cropVarietyUrl && !urlLoading ? (
+                <div className="mt-1 p-4 border-2 border-green-200 rounded-md bg-green-50">
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Upload className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">Predefined URL Available</span>
+                    </div>
+                    <div className="text-sm text-green-700">
+                      <strong>URL:</strong> 
+                      <a 
+                        href={cropVarietyUrl.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="ml-1 text-blue-600 hover:text-blue-800 underline break-all"
+                        data-testid="predefined-url-link"
+                      >
+                        {cropVarietyUrl.url}
+                      </a>
+                    </div>
+                    {cropVarietyUrl.description && (
+                      <div className="text-sm text-green-700">
+                        <strong>Description:</strong> {cropVarietyUrl.description}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground">PDF, DOC, JPG up to 10MB</p>
-                  {file && (
-                    <p className="text-sm text-primary font-medium">{file.name}</p>
-                  )}
                 </div>
-              </div>
+              ) : urlLoading ? (
+                <div className="mt-1 p-4 border-2 border-gray-200 rounded-md bg-gray-50">
+                  <div className="text-center text-sm text-muted-foreground">
+                    Checking for predefined URL...
+                  </div>
+                </div>
+              ) : (
+                /* Show file upload if no URL is available */
+                <div className="mt-1 flex justify-center px-6 py-4 border-2 border-border border-dashed rounded-md hover:border-primary/50 transition-colors">
+                  <div className="space-y-1 text-center">
+                    <CloudUpload className="h-8 w-8 text-muted-foreground mx-auto" />
+                    <div className="flex text-sm text-muted-foreground">
+                      <label htmlFor="brochure" className="relative cursor-pointer bg-background rounded-md font-medium text-primary hover:text-primary/80">
+                        <span>Upload a file</span>
+                        <input 
+                          id="brochure" 
+                          name="brochure" 
+                          type="file" 
+                          className="sr-only" 
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          onChange={handleFileChange}
+                          data-testid="input-brochure"
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">PDF, DOC, JPG up to 10MB</p>
+                    {file && (
+                      <p className="text-sm text-primary font-medium">{file.name}</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Submit Button */}

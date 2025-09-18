@@ -1,18 +1,23 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Trash2, Package, Database, Upload, Eye, Search } from "lucide-react";
+import { Plus, Trash2, Package, Database, Upload, Eye, Search, Link as LinkIcon, Edit } from "lucide-react";
 import { seedCropsAndVarieties } from "@/utils/seed-data";
-import type { Crop, Variety } from "@shared/schema";
+import type { Crop, Variety, CropVarietyUrl } from "@shared/schema";
+import { insertCropVarietyUrlSchema } from "@shared/schema";
 
 type CropWithVarieties = Crop & { varieties: Variety[] };
 
@@ -25,6 +30,17 @@ type ExtractedData = {
   }>;
 };
 
+// Form validation schemas
+const urlFormSchema = insertCropVarietyUrlSchema.extend({
+  url: z.string().url("Please enter a valid URL"),
+  description: z.string().optional(),
+});
+
+const editUrlFormSchema = z.object({
+  url: z.string().url("Please enter a valid URL"),
+  description: z.string().optional(),
+});
+
 export default function CropVarietyManagement() {
   const { toast } = useToast();
   const [showAddCropDialog, setShowAddCropDialog] = useState(false);
@@ -36,6 +52,30 @@ export default function CropVarietyManagement() {
   const [isSeedingLoading, setIsSeedingLoading] = useState(false);
   const [isExtractSeedingLoading, setIsExtractSeedingLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // URL management state
+  const [showAddUrlDialog, setShowAddUrlDialog] = useState(false);
+  const [showEditUrlDialog, setShowEditUrlDialog] = useState(false);
+  const [selectedUrlForEdit, setSelectedUrlForEdit] = useState<CropVarietyUrl | null>(null);
+
+  // URL form validation
+  const urlForm = useForm({
+    resolver: zodResolver(urlFormSchema),
+    defaultValues: {
+      cropId: "",
+      varietyId: "",
+      url: "",
+      description: "",
+    },
+  });
+
+  const editUrlForm = useForm({
+    resolver: zodResolver(editUrlFormSchema),
+    defaultValues: {
+      url: "",
+      description: "",
+    },
+  });
 
   const { data: cropsWithVarieties, isLoading } = useQuery<CropWithVarieties[]>({
     queryKey: ["/api/crops"],
@@ -44,6 +84,11 @@ export default function CropVarietyManagement() {
   const { data: extractedData, refetch: refetchExtractedData } = useQuery<ExtractedData>({
     queryKey: ["/api/products/extract-crops-varieties"],
     enabled: false, // Only fetch when needed
+  });
+
+  // Fetch crop-variety URLs
+  const { data: cropVarietyUrls, isLoading: urlsLoading } = useQuery<CropVarietyUrl[]>({
+    queryKey: ["/api/crop-variety-urls"],
   });
 
   // Filter crops and varieties based on search term
@@ -175,6 +220,68 @@ export default function CropVarietyManagement() {
     },
   });
 
+  // URL management mutations
+  const createCropVarietyUrlMutation = useMutation({
+    mutationFn: ({ cropId, varietyId, url, description }: { cropId: string; varietyId: string; url: string; description?: string }) =>
+      apiRequest("POST", "/api/crop-variety-urls", { cropId, varietyId, url, description }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crop-variety-urls"] });
+      setShowAddUrlDialog(false);
+      urlForm.reset({ cropId: "", varietyId: "", url: "", description: "" });
+      toast({
+        title: "URL created",
+        description: "The crop-variety URL has been added successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error creating URL",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateCropVarietyUrlMutation = useMutation({
+    mutationFn: ({ id, url, description }: { id: string; url: string; description?: string }) =>
+      apiRequest("PUT", `/api/crop-variety-urls/${id}`, { url, description }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crop-variety-urls"] });
+      setShowEditUrlDialog(false);
+      setSelectedUrlForEdit(null);
+      setUrlFormData({ cropId: "", varietyId: "", url: "", description: "" });
+      toast({
+        title: "URL updated",
+        description: "The crop-variety URL has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating URL",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCropVarietyUrlMutation = useMutation({
+    mutationFn: (urlId: string) => apiRequest("DELETE", `/api/crop-variety-urls/${urlId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crop-variety-urls"] });
+      toast({
+        title: "URL deleted",
+        description: "The crop-variety URL has been removed successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error deleting URL",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateCrop = () => {
     if (!newCropName.trim()) {
       toast({
@@ -231,6 +338,51 @@ export default function CropVarietyManagement() {
     setIsExtractSeedingLoading(true);
     seedFromProductsMutation.mutate();
     setIsExtractSeedingLoading(false);
+  };
+
+  // URL management handlers
+  const handleAddUrl = (data: z.infer<typeof urlFormSchema>) => {
+    createCropVarietyUrlMutation.mutate({
+      cropId: data.cropId,
+      varietyId: data.varietyId,
+      url: data.url,
+      description: data.description || undefined,
+    });
+  };
+
+  const handleEditUrl = (urlEntry: CropVarietyUrl) => {
+    setSelectedUrlForEdit(urlEntry);
+    editUrlForm.reset({
+      url: urlEntry.url,
+      description: urlEntry.description || "",
+    });
+    setShowEditUrlDialog(true);
+  };
+
+  const handleUpdateUrl = (data: z.infer<typeof editUrlFormSchema>) => {
+    if (!selectedUrlForEdit) return;
+    
+    updateCropVarietyUrlMutation.mutate({
+      id: selectedUrlForEdit.id,
+      url: data.url,
+      description: data.description || undefined,
+    });
+  };
+
+  const handleDeleteUrl = (urlId: string) => {
+    deleteCropVarietyUrlMutation.mutate(urlId);
+  };
+
+  const getCropName = (cropId: string) => {
+    return cropsWithVarieties?.find(crop => crop.id === cropId)?.name || 'Unknown Crop';
+  };
+
+  const getVarietyCode = (varietyId: string) => {
+    for (const crop of cropsWithVarieties || []) {
+      const variety = crop.varieties.find(v => v.id === varietyId);
+      if (variety) return variety.code;
+    }
+    return 'Unknown Variety';
   };
 
   if (isLoading) {
@@ -386,6 +538,95 @@ export default function CropVarietyManagement() {
                   Add First Crop
                 </Button>
               )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* URL Management Section */}
+      <div className="mt-8 space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-xl font-semibold text-foreground">Crop-Variety URL Management</h3>
+            <p className="text-muted-foreground">
+              Configure predefined URLs for specific crop-variety combinations
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              setUrlFormData({ cropId: "", varietyId: "", url: "", description: "" });
+              setShowAddUrlDialog(true);
+            }}
+            data-testid="button-add-url"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add URL
+          </Button>
+        </div>
+
+        {urlsLoading ? (
+          <div className="text-center py-4">
+            <p className="text-muted-foreground">Loading URLs...</p>
+          </div>
+        ) : cropVarietyUrls && cropVarietyUrls.length > 0 ? (
+          <div className="grid gap-4">
+            {cropVarietyUrls.map((urlEntry) => (
+              <Card key={urlEntry.id} data-testid={`card-url-${urlEntry.id}`}>
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{getCropName(urlEntry.cropId)}</Badge>
+                        <Badge variant="secondary">{getVarietyCode(urlEntry.varietyId)}</Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-foreground">{urlEntry.url}</p>
+                        {urlEntry.description && (
+                          <p className="text-sm text-muted-foreground">{urlEntry.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditUrl(urlEntry)}
+                        data-testid={`button-edit-url-${urlEntry.id}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteUrl(urlEntry.id)}
+                        disabled={deleteCropVarietyUrlMutation.isPending}
+                        data-testid={`button-delete-url-${urlEntry.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <LinkIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No URLs configured</h3>
+              <p className="text-muted-foreground mb-4">
+                Add URLs for specific crop-variety combinations to display them instead of file uploads.
+              </p>
+              <Button
+                onClick={() => {
+                  setUrlFormData({ cropId: "", varietyId: "", url: "", description: "" });
+                  setShowAddUrlDialog(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add First URL
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -557,6 +798,152 @@ export default function CropVarietyManagement() {
               data-testid="button-seed-from-products"
             >
               {seedFromProductsMutation.isPending ? "Seeding..." : "Seed from Products"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add URL Dialog */}
+      <Dialog open={showAddUrlDialog} onOpenChange={setShowAddUrlDialog}>
+        <DialogContent data-testid="dialog-add-url">
+          <DialogHeader>
+            <DialogTitle>Add Crop-Variety URL</DialogTitle>
+            <DialogDescription>
+              Configure a predefined URL for a specific crop-variety combination.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="url-crop">Crop</Label>
+              <Select value={urlFormData.cropId} onValueChange={(value) => {
+                setUrlFormData({ ...urlFormData, cropId: value, varietyId: "" });
+              }}>
+                <SelectTrigger data-testid="select-url-crop">
+                  <SelectValue placeholder="Select a crop" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cropsWithVarieties?.map((crop) => (
+                    <SelectItem key={crop.id} value={crop.id}>
+                      {crop.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="url-variety">Variety</Label>
+              <Select 
+                value={urlFormData.varietyId} 
+                onValueChange={(value) => setUrlFormData({ ...urlFormData, varietyId: value })}
+                disabled={!urlFormData.cropId}
+              >
+                <SelectTrigger data-testid="select-url-variety">
+                  <SelectValue placeholder="Select a variety" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cropsWithVarieties
+                    ?.find(crop => crop.id === urlFormData.cropId)
+                    ?.varieties.map((variety) => (
+                      <SelectItem key={variety.id} value={variety.id}>
+                        {variety.code}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="url-input">URL</Label>
+              <Input
+                id="url-input"
+                value={urlFormData.url}
+                onChange={(e) => setUrlFormData({ ...urlFormData, url: e.target.value })}
+                placeholder="https://example.com/document.pdf"
+                data-testid="input-url"
+              />
+            </div>
+            <div>
+              <Label htmlFor="url-description">Description (Optional)</Label>
+              <Input
+                id="url-description"
+                value={urlFormData.description}
+                onChange={(e) => setUrlFormData({ ...urlFormData, description: e.target.value })}
+                placeholder="Brief description of the document"
+                data-testid="input-url-description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddUrlDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddUrl}
+              disabled={createCropVarietyUrlMutation.isPending}
+              data-testid="button-create-url"
+            >
+              {createCropVarietyUrlMutation.isPending ? "Creating..." : "Create URL"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit URL Dialog */}
+      <Dialog open={showEditUrlDialog} onOpenChange={setShowEditUrlDialog}>
+        <DialogContent data-testid="dialog-edit-url">
+          <DialogHeader>
+            <DialogTitle>Edit Crop-Variety URL</DialogTitle>
+            <DialogDescription>
+              Update the URL and description for this crop-variety combination.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Crop</Label>
+              <div className="p-2 bg-muted rounded-md">
+                <span className="text-sm text-muted-foreground">
+                  {selectedUrlForEdit ? getCropName(selectedUrlForEdit.cropId) : ''}
+                </span>
+              </div>
+            </div>
+            <div>
+              <Label>Variety</Label>
+              <div className="p-2 bg-muted rounded-md">
+                <span className="text-sm text-muted-foreground">
+                  {selectedUrlForEdit ? getVarietyCode(selectedUrlForEdit.varietyId) : ''}
+                </span>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-url-input">URL</Label>
+              <Input
+                id="edit-url-input"
+                value={urlFormData.url}
+                onChange={(e) => setUrlFormData({ ...urlFormData, url: e.target.value })}
+                placeholder="https://example.com/document.pdf"
+                data-testid="input-edit-url"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-url-description">Description (Optional)</Label>
+              <Input
+                id="edit-url-description"
+                value={urlFormData.description}
+                onChange={(e) => setUrlFormData({ ...urlFormData, description: e.target.value })}
+                placeholder="Brief description of the document"
+                data-testid="input-edit-url-description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditUrlDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateUrl}
+              disabled={updateCropVarietyUrlMutation.isPending}
+              data-testid="button-update-url"
+            >
+              {updateCropVarietyUrlMutation.isPending ? "Updating..." : "Update URL"}
             </Button>
           </DialogFooter>
         </DialogContent>

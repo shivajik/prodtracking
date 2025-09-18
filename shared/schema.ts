@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, timestamp, boolean, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, timestamp, boolean, uuid, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -77,14 +77,41 @@ export const varieties = pgTable("varieties", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const cropsRelations = relations(crops, ({ many }) => ({
-  varieties: many(varieties),
+// Crop-variety URLs table for predefined brochure URLs
+export const cropVarietyUrls = pgTable("crop_variety_urls", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  cropId: uuid("crop_id").notNull().references(() => crops.id, { onDelete: "cascade" }),
+  varietyId: uuid("variety_id").notNull().references(() => varieties.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  // Ensure only one URL per crop-variety combination
+  cropVarietyUnique: unique().on(table.cropId, table.varietyId),
 }));
 
-export const varietiesRelations = relations(varieties, ({ one }) => ({
+export const cropsRelations = relations(crops, ({ many }) => ({
+  varieties: many(varieties),
+  cropVarietyUrls: many(cropVarietyUrls),
+}));
+
+export const varietiesRelations = relations(varieties, ({ one, many }) => ({
   crop: one(crops, {
     fields: [varieties.cropId],
     references: [crops.id],
+  }),
+  cropVarietyUrls: many(cropVarietyUrls),
+}));
+
+export const cropVarietyUrlsRelations = relations(cropVarietyUrls, ({ one }) => ({
+  crop: one(crops, {
+    fields: [cropVarietyUrls.cropId],
+    references: [crops.id],
+  }),
+  variety: one(varieties, {
+    fields: [cropVarietyUrls.varietyId],
+    references: [varieties.id],
   }),
 }));
 
@@ -158,6 +185,12 @@ export const insertVarietySchema = createInsertSchema(varieties).omit({
   createdAt: true,
 });
 
+export const insertCropVarietyUrlSchema = createInsertSchema(cropVarietyUrls).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
@@ -166,3 +199,5 @@ export type InsertCrop = z.infer<typeof insertCropSchema>;
 export type Crop = typeof crops.$inferSelect;
 export type InsertVariety = z.infer<typeof insertVarietySchema>;
 export type Variety = typeof varieties.$inferSelect;
+export type InsertCropVarietyUrl = z.infer<typeof insertCropVarietyUrlSchema>;
+export type CropVarietyUrl = typeof cropVarietyUrls.$inferSelect;

@@ -978,6 +978,134 @@ function normalizeProductData(data: Record<string, any>) {
     }
   });
 
+  // Crop-variety URL management endpoints
+
+  // Get all crop-variety URLs (admin only)
+  app.get("/api/crop-variety-urls", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const cropVarietyUrls = await storage.getAllCropVarietyUrls();
+      res.json(cropVarietyUrls);
+    } catch (error) {
+      console.error("Get crop-variety URLs error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get crop-variety URL by crop name and variety code (for forms)
+  app.get("/api/crop-variety-urls/by-names/:cropName/:varietyCode", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { cropName, varietyCode } = req.params;
+      const cropVarietyUrl = await storage.getCropVarietyUrlByCropAndVarietyNames(cropName, varietyCode);
+      
+      if (!cropVarietyUrl) {
+        return res.status(404).json({ message: "No URL found for this crop-variety combination" });
+      }
+
+      res.json(cropVarietyUrl);
+    } catch (error) {
+      console.error("Get crop-variety URL by names error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create crop-variety URL (admin only)
+  app.post("/api/crop-variety-urls", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { cropId, varietyId, url, description } = req.body;
+      
+      if (!cropId || typeof cropId !== "string") {
+        return res.status(400).json({ message: "Crop ID is required" });
+      }
+      if (!varietyId || typeof varietyId !== "string") {
+        return res.status(400).json({ message: "Variety ID is required" });
+      }
+      if (!url || typeof url !== "string" || url.trim() === "") {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      // Check if URL already exists for this crop-variety combination
+      const existing = await storage.getCropVarietyUrl(cropId, varietyId);
+      if (existing) {
+        return res.status(400).json({ message: "URL already exists for this crop-variety combination" });
+      }
+
+      const cropVarietyUrl = await storage.createCropVarietyUrl({
+        cropId,
+        varietyId,
+        url: url.trim(),
+        description: description?.trim() || null
+      });
+
+      res.status(201).json(cropVarietyUrl);
+    } catch (error) {
+      console.error("Create crop-variety URL error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update crop-variety URL (admin only)
+  app.put("/api/crop-variety-urls/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { id } = req.params;
+      const { url, description } = req.body;
+
+      if (!url || typeof url !== "string" || url.trim() === "") {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      const updated = await storage.updateCropVarietyUrl(id, {
+        url: url.trim(),
+        description: description?.trim() || null
+      });
+
+      if (!updated) {
+        return res.status(404).json({ message: "Crop-variety URL not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Update crop-variety URL error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete crop-variety URL (admin only)
+  app.delete("/api/crop-variety-urls/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteCropVarietyUrl(id);
+
+      if (!success) {
+        return res.status(404).json({ message: "Crop-variety URL not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete crop-variety URL error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Serve uploaded files
   app.get("/api/files/:filename", (req, res) => {
     const { filename } = req.params;
