@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Clock, CheckCircle, XCircle, List, Eye, Check, X, Users, Plus, BarChart3, Home, Download, Search, Upload, Grid3X3, LayoutList, Edit } from "lucide-react";
+import { Clock, CheckCircle, XCircle, List, Eye, Check, X, Users, Plus, BarChart3, Home, Download, Search, Upload, Grid3X3, LayoutList, Edit, Link } from "lucide-react";
 import { Product, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -292,7 +292,7 @@ export default function AdminDashboard() {
     {
       id: "url",
       label: "URL Management",
-      icon: <BarChart3 className="h-4 w-4" />,
+      icon: <Link className="h-4 w-4" />,
       onClick: () => setActiveTab("url"),
       active: activeTab === "url",
     },
