@@ -78,6 +78,12 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [selectedCrop, setSelectedCrop] = useState<string>("");
   const [selectedVariety, setSelectedVariety] = useState<string>("");
+const [hidePredefinedUrl, setHidePredefinedUrl] = useState(false);
+
+// whenever crop or variety changes, show URL again
+useEffect(() => {
+  setHidePredefinedUrl(false);
+}, [selectedCrop, selectedVariety]);
 
   // Fetch dynamic crop and variety data
   const { data: cropNames, isLoading: cropsLoading } = useCropNames();
@@ -181,6 +187,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
       });
       form.reset();
       setFile(null);
+      setHidePredefinedUrl(true); // Add this line to hide the URL after submission
       onSuccess?.();
     },
     onError: (error: Error) => {
@@ -255,6 +262,12 @@ export default function ProductForm({ onSuccess }: ProductFormProps = {}) {
       });
       setShowImportDialog(false);
       setImportFile(null);
+
+      form.reset();
+      setFile(null);
+
+      setHidePredefinedUrl(true);
+
       onSuccess?.();
     },
     onError: (error: Error) => {
