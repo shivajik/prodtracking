@@ -658,6 +658,32 @@ async function createApp() {
     });
   });
 
+    function normalizeProductData(data) {
+      const numericFields = [
+    "mrp",
+    "unitSalePrice",
+    "noOfPkts",
+    "totalPkts",
+    "gb",
+    "remainingQuantity",
+    "normalGermination",
+    "gerAve",
+    "gotPercent",
+    "gotAve",
+      ];
+    
+      for (const field of numericFields) {
+        if (data[field] === "" || data[field] === undefined) {
+          data[field] = null;
+        } else if (!isNaN(data[field])) {
+          // Convert numeric-looking strings to actual numbers
+          data[field] = Number(data[field]);
+        }
+      }
+    
+      return data;
+    }
+
   // Product routes
   app.post("/api/products", upload.single("brochure"), async (req, res) => {
     try {
@@ -679,10 +705,11 @@ async function createApp() {
         productData.brochureUrl = `/api/files/${productData.uniqueId}`;
         productData.brochureFilename = req.file.originalname;
       }
+      const normalizedData = normalizeProductData(productData);
 
       // Validate product data
       const validatedData = insertProductSchema.parse({
-        ...productData,
+        ...normalizedData,
         submittedBy: req.user.id,
       });
 
