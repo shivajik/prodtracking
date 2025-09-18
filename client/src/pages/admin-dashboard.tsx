@@ -21,6 +21,7 @@ import ProductCard from "@/components/product-card";
 import ProductEditDialog from "@/components/product-edit-dialog";
 import CropVarietyManagement from "@/components/crop-variety-management";
 import Sidebar, { SidebarItem } from "@/components/sidebar";
+import UrlManagement from "@/components/URLManagement";
 
 const createUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -287,6 +288,13 @@ export default function AdminDashboard() {
       icon: <BarChart3 className="h-4 w-4" />,
       onClick: () => setActiveTab("crops"),
       active: activeTab === "crops",
+    },
+    {
+      id: "url",
+      label: "URL Management",
+      icon: <BarChart3 className="h-4 w-4" />,
+      onClick: () => setActiveTab("url"),
+      active: activeTab === "url",
     },
   ];
 
@@ -985,6 +993,9 @@ export default function AdminDashboard() {
             {/* Separate rendering for crops tab without heading and search */}
           {activeTab === "crops" && (
             <CropVarietyManagement />
+          )}
+          {activeTab === "url" && (
+            < UrlManagement />
           )}
         </div>
       </div>
