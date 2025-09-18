@@ -86,11 +86,6 @@ export default function CropVarietyManagement() {
     enabled: false, // Only fetch when needed
   });
 
-  // Fetch crop-variety URLs
-  const { data: cropVarietyUrls, isLoading: urlsLoading } = useQuery<CropVarietyUrl[]>({
-    queryKey: ["/api/crop-variety-urls"],
-  });
-
   // Filter crops and varieties based on search term
   const filteredCropsWithVarieties = useMemo(() => {
     if (!cropsWithVarieties || !searchTerm.trim()) {
@@ -264,24 +259,7 @@ export default function CropVarietyManagement() {
     },
   });
 
-  const deleteCropVarietyUrlMutation = useMutation({
-    mutationFn: (urlId: string) => apiRequest("DELETE", `/api/crop-variety-urls/${urlId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crop-variety-urls"] });
-      toast({
-        title: "URL deleted",
-        description: "The crop-variety URL has been removed successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error deleting URL",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
+ 
   const handleCreateCrop = () => {
     if (!newCropName.trim()) {
       toast({
@@ -309,30 +287,6 @@ export default function CropVarietyManagement() {
     });
   };
 
-  const handleSeedData = async () => {
-    setIsSeedingLoading(true);
-    try {
-      await seedCropsAndVarieties();
-      queryClient.invalidateQueries({ queryKey: ["/api/crops"] });
-      toast({
-        title: "Database seeded successfully!",
-        description: "All crops and varieties have been added to the database.",
-      });
-    } catch (error) {
-      toast({
-        title: "Seeding failed",
-        description: "Failed to seed the database. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSeedingLoading(false);
-    }
-  };
-
-  const handleShowExtractDialog = async () => {
-    setShowExtractDialog(true);
-    await refetchExtractedData();
-  };
 
   const handleSeedFromProducts = () => {
     setIsExtractSeedingLoading(true);
@@ -350,14 +304,6 @@ export default function CropVarietyManagement() {
     });
   };
 
-  const handleEditUrl = (urlEntry: CropVarietyUrl) => {
-    setSelectedUrlForEdit(urlEntry);
-    editUrlForm.reset({
-      url: urlEntry.url,
-      description: urlEntry.description || "",
-    });
-    setShowEditUrlDialog(true);
-  };
 
   const handleUpdateUrl = (data: z.infer<typeof editUrlFormSchema>) => {
     if (!selectedUrlForEdit) return;
@@ -367,10 +313,6 @@ export default function CropVarietyManagement() {
       url: data.url,
       description: data.description || undefined,
     });
-  };
-
-  const handleDeleteUrl = (urlId: string) => {
-    deleteCropVarietyUrlMutation.mutate(urlId);
   };
 
   const getCropName = (cropId: string) => {
@@ -410,27 +352,6 @@ export default function CropVarietyManagement() {
       {/* <div className="flex justify-between items-center"> */}
         <div></div>
         <div className="space-x-2">
-          {/* {(!cropsWithVarieties || cropsWithVarieties.length === 0) && (
-            <>
-              <Button
-                onClick={handleShowExtractDialog}
-                variant="secondary"
-                data-testid="button-extract-from-products"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Extract from Products
-              </Button>
-              <Button
-                onClick={handleSeedData}
-                disabled={isSeedingLoading}
-                variant="default"
-                data-testid="button-seed-data"
-              >
-                <Database className="h-4 w-4 mr-2" />
-                {isSeedingLoading ? "Seeding..." : "Seed Initial Data"}
-              </Button>
-            </>
-          )} */}
           <Button
             onClick={() => setShowAddVarietyDialog(true)}
             variant="outline"
@@ -538,95 +459,6 @@ export default function CropVarietyManagement() {
                   Add First Crop
                 </Button>
               )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* URL Management Section */}
-      <div className="mt-8 space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-xl font-semibold text-foreground">Crop-Variety URL Management</h3>
-            <p className="text-muted-foreground">
-              Configure predefined URLs for specific crop-variety combinations
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              urlForm.reset({ cropId: "", varietyId: "", url: "", description: "" });
-              setShowAddUrlDialog(true);
-            }}
-            data-testid="button-add-url"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add URL
-          </Button>
-        </div>
-
-        {urlsLoading ? (
-          <div className="text-center py-4">
-            <p className="text-muted-foreground">Loading URLs...</p>
-          </div>
-        ) : cropVarietyUrls && cropVarietyUrls.length > 0 ? (
-          <div className="grid gap-4">
-            {cropVarietyUrls.map((urlEntry) => (
-              <Card key={urlEntry.id} data-testid={`card-url-${urlEntry.id}`}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{getCropName(urlEntry.cropId)}</Badge>
-                        <Badge variant="secondary">{getVarietyCode(urlEntry.varietyId)}</Badge>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">{urlEntry.url}</p>
-                        {urlEntry.description && (
-                          <p className="text-sm text-muted-foreground">{urlEntry.description}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditUrl(urlEntry)}
-                        data-testid={`button-edit-url-${urlEntry.id}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteUrl(urlEntry.id)}
-                        disabled={deleteCropVarietyUrlMutation.isPending}
-                        data-testid={`button-delete-url-${urlEntry.id}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <LinkIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No URLs configured</h3>
-              <p className="text-muted-foreground mb-4">
-                Add URLs for specific crop-variety combinations to display them instead of file uploads.
-              </p>
-              <Button
-                onClick={() => {
-                  urlForm.reset({ cropId: "", varietyId: "", url: "", description: "" });
-                  setShowAddUrlDialog(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add First URL
-              </Button>
             </CardContent>
           </Card>
         )}
