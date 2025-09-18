@@ -165,6 +165,9 @@ useEffect(() => {
       
       if (file) {
         formData.append("brochure", file);
+      } else if (cropVarietyUrl?.url) {
+  formData.set("brochureUrl", String(cropVarietyUrl.url));
+  formData.set("brochureFilename", String(cropVarietyUrl.filename || "predefined-brochure"));
       }
 
       const response = await fetch("/api/products", {
