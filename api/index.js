@@ -7,7 +7,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, timestamp, boolean, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, timestamp, boolean, uuid, unique } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { eq, and, or, ilike, desc } from "drizzle-orm";
 import multer from "multer";
@@ -131,6 +131,20 @@ const varieties = pgTable("varieties", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Crop-variety URLs table for predefined brochure URLs
+const cropVarietyUrls = pgTable("crop_variety_urls", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  cropId: uuid("crop_id").notNull().references(() => crops.id, { onDelete: 'cascade' }),
+  varietyId: uuid("variety_id").notNull().references(() => varieties.id, { onDelete: 'cascade' }),
+  url: text("url").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  // Ensure only one URL per crop-variety combination
+  cropVarietyUnique: unique().on(table.cropId, table.varietyId),
+}));
+
 // Validation Schemas
 const insertUserSchema = z.object({
   username: z.string().min(1),
@@ -178,6 +192,23 @@ const insertProductSchema = z.object({
   brochureUrl: z.string().optional(),
   brochureFilename: z.string().optional(),
   submittedBy: z.string().optional(),
+});
+
+// Crop and variety validation schemas
+const insertCropSchema = z.object({
+  name: z.string().min(1, "Crop name is required"),
+});
+
+const insertVarietySchema = z.object({
+  code: z.string().min(1, "Variety code is required"),
+  cropId: z.string().uuid("Valid crop ID is required"),
+});
+
+const insertCropVarietyUrlSchema = z.object({
+  cropId: z.string().uuid("Valid crop ID is required"),
+  varietyId: z.string().uuid("Valid variety ID is required"),
+  url: z.string().url("Valid URL is required"),
+  description: z.string().optional(),
 });
 
 // Database connection
@@ -432,6 +463,69 @@ const storage = {
       return (result.rowCount ?? 0) > 0;
     } catch (error) {
       console.error('Error deleting variety:', error);
+      return false;
+    }
+  },
+
+  // Crop-variety URL management functions
+  async getAllCropVarietyUrls() {
+    const db = getDatabase();
+    return await db.select().from(cropVarietyUrls).orderBy(cropVarietyUrls.createdAt);
+  },
+
+  async getCropVarietyUrlByCropAndVarietyNames(cropName, varietyCode) {
+    const db = getDatabase();
+    
+    // First find the crop by name
+    const crop = await db.select().from(crops).where(eq(crops.name, cropName)).limit(1);
+    if (!crop.length) return null;
+    
+    // Then find the variety by code and crop ID
+    const variety = await db.select().from(varieties)
+      .where(and(eq(varieties.code, varietyCode), eq(varieties.cropId, crop[0].id)))
+      .limit(1);
+    if (!variety.length) return null;
+    
+    // Finally find the URL for this crop-variety combination
+    const result = await db.select().from(cropVarietyUrls)
+      .where(and(eq(cropVarietyUrls.cropId, crop[0].id), eq(cropVarietyUrls.varietyId, variety[0].id)))
+      .limit(1);
+    
+    return result.length ? result[0] : null;
+  },
+
+  async createCropVarietyUrl(urlData) {
+    const db = getDatabase();
+    const [newUrl] = await db
+      .insert(cropVarietyUrls)
+      .values({
+        ...urlData,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return newUrl;
+  },
+
+  async updateCropVarietyUrl(id, updates) {
+    const db = getDatabase();
+    const [updatedUrl] = await db
+      .update(cropVarietyUrls)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(cropVarietyUrls.id, id))
+      .returning();
+    return updatedUrl;
+  },
+
+  async deleteCropVarietyUrl(id) {
+    try {
+      const db = getDatabase();
+      const result = await db.delete(cropVarietyUrls).where(eq(cropVarietyUrls.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting crop-variety URL:', error);
       return false;
     }
   }
@@ -1377,6 +1471,148 @@ async function createApp() {
       });
     } catch (error) {
       console.error("Seed crops/varieties error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Crop-variety URL management endpoints
+
+  // Get all crop-variety URLs (admin only)
+  app.get("/api/crop-variety-urls", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const cropVarietyUrls = await storage.getAllCropVarietyUrls();
+      res.json(cropVarietyUrls);
+    } catch (error) {
+      console.error("Get crop-variety URLs error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get crop-variety URL by crop name and variety code (for operators)
+  app.get("/api/crop-variety-urls/by-names/:cropName/:varietyCode", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { cropName, varietyCode } = req.params;
+      const cropVarietyUrl = await storage.getCropVarietyUrlByCropAndVarietyNames(cropName, varietyCode);
+      
+      if (!cropVarietyUrl) {
+        return res.status(404).json({ message: "No URL found for this crop-variety combination" });
+      }
+
+      res.json(cropVarietyUrl);
+    } catch (error) {
+      console.error("Get crop-variety URL by names error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new crop-variety URL (admin only)
+  app.post("/api/crop-variety-urls", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { cropId, varietyId, url, description } = req.body;
+      
+      if (!cropId || typeof cropId !== "string") {
+        return res.status(400).json({ message: "Crop ID is required" });
+      }
+      
+      if (!varietyId || typeof varietyId !== "string") {
+        return res.status(400).json({ message: "Variety ID is required" });
+      }
+      
+      if (!url || typeof url !== "string" || url.trim() === "") {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      // Validate the data with Zod schema
+      const validatedData = insertCropVarietyUrlSchema.parse({
+        cropId,
+        varietyId,
+        url: url.trim(),
+        description: description ? description.trim() : undefined,
+      });
+
+      const cropVarietyUrl = await storage.createCropVarietyUrl(validatedData);
+      res.status(201).json(cropVarietyUrl);
+    } catch (error) {
+      console.error("Create crop-variety URL error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      // Handle unique constraint violation
+      if (error.message && error.message.includes('duplicate key value') || error.code === '23505') {
+        return res.status(409).json({ message: "A URL already exists for this crop-variety combination. Please update the existing URL instead." });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update crop-variety URL (admin only)
+  app.put("/api/crop-variety-urls/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { id } = req.params;
+      const { url, description } = req.body;
+
+      if (!url || typeof url !== "string" || url.trim() === "") {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      // Validate the URL
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ message: "Invalid URL format" });
+      }
+
+      const updates = {
+        url: url.trim(),
+        description: description ? description.trim() : null,
+      };
+
+      const updatedUrl = await storage.updateCropVarietyUrl(id, updates);
+      
+      if (!updatedUrl) {
+        return res.status(404).json({ message: "Crop-variety URL not found" });
+      }
+
+      res.json(updatedUrl);
+    } catch (error) {
+      console.error("Update crop-variety URL error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete crop-variety URL (admin only)
+  app.delete("/api/crop-variety-urls/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteCropVarietyUrl(id);
+
+      if (!success) {
+        return res.status(404).json({ message: "Crop-variety URL not found" });
+      }
+
+      res.json({ message: "Crop-variety URL deleted successfully" });
+    } catch (error) {
+      console.error("Delete crop-variety URL error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
