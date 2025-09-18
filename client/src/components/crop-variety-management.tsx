@@ -249,7 +249,7 @@ export default function CropVarietyManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/crop-variety-urls"] });
       setShowEditUrlDialog(false);
       setSelectedUrlForEdit(null);
-      setUrlFormData({ cropId: "", varietyId: "", url: "", description: "" });
+      editUrlForm.reset({ url: "", description: "" });
       toast({
         title: "URL updated",
         description: "The crop-variety URL has been updated successfully.",
@@ -554,7 +554,7 @@ export default function CropVarietyManagement() {
           </div>
           <Button
             onClick={() => {
-              setUrlFormData({ cropId: "", varietyId: "", url: "", description: "" });
+              urlForm.reset({ cropId: "", varietyId: "", url: "", description: "" });
               setShowAddUrlDialog(true);
             }}
             data-testid="button-add-url"
@@ -620,7 +620,7 @@ export default function CropVarietyManagement() {
               </p>
               <Button
                 onClick={() => {
-                  setUrlFormData({ cropId: "", varietyId: "", url: "", description: "" });
+                  urlForm.reset({ cropId: "", varietyId: "", url: "", description: "" });
                   setShowAddUrlDialog(true);
                 }}
               >
@@ -812,72 +812,116 @@ export default function CropVarietyManagement() {
               Configure a predefined URL for a specific crop-variety combination.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="url-crop">Crop</Label>
-              <Select value={urlFormData.cropId} onValueChange={(value) => {
-                setUrlFormData({ ...urlFormData, cropId: value, varietyId: "" });
-              }}>
-                <SelectTrigger data-testid="select-url-crop">
-                  <SelectValue placeholder="Select a crop" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cropsWithVarieties?.map((crop) => (
-                    <SelectItem key={crop.id} value={crop.id}>
-                      {crop.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="url-variety">Variety</Label>
-              <Select 
-                value={urlFormData.varietyId} 
-                onValueChange={(value) => setUrlFormData({ ...urlFormData, varietyId: value })}
-                disabled={!urlFormData.cropId}
-              >
-                <SelectTrigger data-testid="select-url-variety">
-                  <SelectValue placeholder="Select a variety" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cropsWithVarieties
-                    ?.find(crop => crop.id === urlFormData.cropId)
-                    ?.varieties.map((variety) => (
-                      <SelectItem key={variety.id} value={variety.id}>
-                        {variety.code}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="url-input">URL</Label>
-              <Input
-                id="url-input"
-                value={urlFormData.url}
-                onChange={(e) => setUrlFormData({ ...urlFormData, url: e.target.value })}
-                placeholder="https://example.com/document.pdf"
-                data-testid="input-url"
+          <Form {...urlForm}>
+            <div className="space-y-4">
+              <FormField
+                control={urlForm.control}
+                name="cropId"
+                render={({ field }) => {
+                  const selectedCrop = urlForm.watch("cropId");
+                  return (
+                    <FormItem>
+                      <FormLabel>Crop</FormLabel>
+                      <FormControl>
+                        <Select value={field.value} onValueChange={(value) => {
+                          field.onChange(value);
+                          urlForm.setValue("varietyId", ""); // Reset variety when crop changes
+                        }}>
+                          <SelectTrigger data-testid="select-url-crop">
+                            <SelectValue placeholder="Select a crop" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cropsWithVarieties?.map((crop) => (
+                              <SelectItem key={crop.id} value={crop.id}>
+                                {crop.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+              
+              <FormField
+                control={urlForm.control}
+                name="varietyId"
+                render={({ field }) => {
+                  const selectedCropId = urlForm.watch("cropId");
+                  return (
+                    <FormItem>
+                      <FormLabel>Variety</FormLabel>
+                      <FormControl>
+                        <Select 
+                          value={field.value} 
+                          onValueChange={field.onChange}
+                          disabled={!selectedCropId}
+                        >
+                          <SelectTrigger data-testid="select-url-variety">
+                            <SelectValue placeholder="Select a variety" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cropsWithVarieties
+                              ?.find(crop => crop.id === selectedCropId)
+                              ?.varieties.map((variety) => (
+                                <SelectItem key={variety.id} value={variety.id}>
+                                  {variety.code}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+              
+              <FormField
+                control={urlForm.control}
+                name="url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="https://example.com/document.pdf"
+                        data-testid="input-url"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={urlForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Brief description of the document"
+                        data-testid="input-url-description"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div>
-              <Label htmlFor="url-description">Description (Optional)</Label>
-              <Input
-                id="url-description"
-                value={urlFormData.description}
-                onChange={(e) => setUrlFormData({ ...urlFormData, description: e.target.value })}
-                placeholder="Brief description of the document"
-                data-testid="input-url-description"
-              />
-            </div>
-          </div>
+          </Form>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddUrlDialog(false)}>
               Cancel
             </Button>
             <Button 
-              onClick={handleAddUrl}
+              onClick={urlForm.handleSubmit(handleAddUrl)}
               disabled={createCropVarietyUrlMutation.isPending}
               data-testid="button-create-url"
             >
@@ -896,50 +940,68 @@ export default function CropVarietyManagement() {
               Update the URL and description for this crop-variety combination.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Crop</Label>
-              <div className="p-2 bg-muted rounded-md">
-                <span className="text-sm text-muted-foreground">
-                  {selectedUrlForEdit ? getCropName(selectedUrlForEdit.cropId) : ''}
-                </span>
+          <Form {...editUrlForm}>
+            <div className="space-y-4">
+              <div>
+                <Label>Crop</Label>
+                <div className="p-2 bg-muted rounded-md">
+                  <span className="text-sm text-muted-foreground">
+                    {selectedUrlForEdit ? getCropName(selectedUrlForEdit.cropId) : ''}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div>
-              <Label>Variety</Label>
-              <div className="p-2 bg-muted rounded-md">
-                <span className="text-sm text-muted-foreground">
-                  {selectedUrlForEdit ? getVarietyCode(selectedUrlForEdit.varietyId) : ''}
-                </span>
+              <div>
+                <Label>Variety</Label>
+                <div className="p-2 bg-muted rounded-md">
+                  <span className="text-sm text-muted-foreground">
+                    {selectedUrlForEdit ? getVarietyCode(selectedUrlForEdit.varietyId) : ''}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div>
-              <Label htmlFor="edit-url-input">URL</Label>
-              <Input
-                id="edit-url-input"
-                value={urlFormData.url}
-                onChange={(e) => setUrlFormData({ ...urlFormData, url: e.target.value })}
-                placeholder="https://example.com/document.pdf"
-                data-testid="input-edit-url"
+              
+              <FormField
+                control={editUrlForm.control}
+                name="url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="https://example.com/document.pdf"
+                        data-testid="input-edit-url"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editUrlForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Brief description of the document"
+                        data-testid="input-edit-url-description"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div>
-              <Label htmlFor="edit-url-description">Description (Optional)</Label>
-              <Input
-                id="edit-url-description"
-                value={urlFormData.description}
-                onChange={(e) => setUrlFormData({ ...urlFormData, description: e.target.value })}
-                placeholder="Brief description of the document"
-                data-testid="input-edit-url-description"
-              />
-            </div>
-          </div>
+          </Form>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditUrlDialog(false)}>
               Cancel
             </Button>
             <Button 
-              onClick={handleUpdateUrl}
+              onClick={editUrlForm.handleSubmit(handleUpdateUrl)}
               disabled={updateCropVarietyUrlMutation.isPending}
               data-testid="button-update-url"
             >
