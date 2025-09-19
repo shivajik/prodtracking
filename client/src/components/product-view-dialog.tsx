@@ -71,6 +71,14 @@ export default function ProductViewDialog({
                 <p className="text-sm font-medium text-muted-foreground">Company</p>
                 <p className="font-medium" data-testid="view-company">{product.company || "Not specified"}</p>
               </div>
+              {/* {product.classType && ( */}
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Class</p>
+                  <p className="font-medium capitalize" data-testid="text-class-type">
+                    {product.classType || "Not specified"}
+                  </p>
+                </div>
+              {/* )} */}
               {/* <div>
                 <p className="text-sm font-medium text-muted-foreground">Brand</p>
                 <p className="font-medium" data-testid="view-brand">{product.brand || "Not specified"}</p>
