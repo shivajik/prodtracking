@@ -115,7 +115,7 @@ export default function AuthPage() {
               </form>
             </Form>
             
-            <div className="mt-6 pt-6 border-t">
+            {/* <div className="mt-6 pt-6 border-t">
               <p className="text-sm text-muted-foreground text-center mb-4">Quick Demo Access</p>
               <div className="grid grid-cols-2 gap-3">
                 <Button
@@ -137,7 +137,7 @@ export default function AuthPage() {
                   Demo Operator Login
                 </Button>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
