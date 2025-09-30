@@ -239,24 +239,31 @@ export class DatabaseStorage implements IStorage {
 
   // Crop and variety management implementations
   async getAllCropsWithVarieties(): Promise<(Crop & { varieties: Variety[] })[]> {
-    const cropsData = await db.select().from(crops).orderBy(crops.name);
+    const result = await db
+      .select({
+        crop: crops,
+        variety: varieties,
+      })
+      .from(crops)
+      .leftJoin(varieties, eq(varieties.cropId, crops.id))
+      .orderBy(crops.name, varieties.code);
+
+    const cropsMap = new Map<string, Crop & { varieties: Variety[] }>();
     
-    const result: (Crop & { varieties: Variety[] })[] = [];
-    
-    for (const crop of cropsData) {
-      const cropVarieties = await db
-        .select()
-        .from(varieties)
-        .where(eq(varieties.cropId, crop.id))
-        .orderBy(varieties.code);
+    for (const row of result) {
+      if (!cropsMap.has(row.crop.id)) {
+        cropsMap.set(row.crop.id, {
+          ...row.crop,
+          varieties: []
+        });
+      }
       
-      result.push({
-        ...crop,
-        varieties: cropVarieties
-      });
+      if (row.variety) {
+        cropsMap.get(row.crop.id)!.varieties.push(row.variety);
+      }
     }
     
-    return result;
+    return Array.from(cropsMap.values());
   }
 
   async createCrop(crop: InsertCrop): Promise<Crop> {
