@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sprout, Phone, Mail, Download, Calendar, Package, QrCode } from "lucide-react";
 import { Product } from "@shared/schema";
+import logoUrl from "@assets/nbil-logo-a_1762228411331.png";
 
 export default function PublicProduct() {
   const { uniqueId } = useParams();
@@ -89,25 +90,41 @@ export default function PublicProduct() {
       {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="h-10 w-10 bg-primary rounded-full flex items-center justify-center">
-                <Sprout className="h-6 w-6 text-primary-foreground" />
-              </div>
+              <img src={logoUrl} alt="Nath Seeds Logo" className="h-16 w-auto object-contain" />
               <div>
-                <h1 className="text-xl font-bold text-foreground">Green Gold Seeds Pvt. Ltd.</h1>
+                <h1 className="text-xl font-bold text-foreground">Nath Seeds</h1>
                 <p className="text-sm text-muted-foreground">Product Tracking System</p>
               </div>
             </div>
             
             <div className="text-right text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Phone className="h-4 w-4" />
-                <span>+91 88888 66031</span>
+              <div className="mb-3">
+                <p className="font-semibold text-foreground">Registered Office</p>
+                <p>Nath House, Nath Road,</p>
+                <p>Chhatrapati Sambhajinagar-431005, Maharashtra</p>
+                <div className="flex items-center gap-1 justify-end mt-1">
+                  <Phone className="h-3 w-3" />
+                  <span>+91-240-3502421 to 25</span>
+                </div>
+                <div className="flex items-center gap-1 justify-end">
+                  <Phone className="h-3 w-3" />
+                  <span>+91-0240-6645555</span>
+                </div>
+                <div className="flex items-center gap-1 justify-end mt-1">
+                  <Mail className="h-3 w-3" />
+                  <span>info@nathseeds.com</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 mt-1">
-                <Mail className="h-4 w-4" />
-                <span>greengoldseeds@rediffmail.com</span>
+              <div>
+                <p className="font-semibold text-foreground">Corporate Office</p>
+                <p>1 Chateau Windsor, 86 Veer Nariman Road,</p>
+                <p>Churchgate, Mumbai- 400020, Maharashtra</p>
+                <div className="flex items-center gap-1 justify-end mt-1">
+                  <Phone className="h-3 w-3" />
+                  <span>+91-22- 22875652 to 55</span>
+                </div>
               </div>
             </div>
           </div>
@@ -485,7 +502,7 @@ export default function PublicProduct() {
 
         {/* Verification Footer */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>This product information has been verified and approved by Green Gold Seeds Pvt. Ltd.</p>
+          <p>This product information has been verified and approved by Nath Seeds.</p>
           <p className="mt-2">For any queries, please contact our customer care team.</p>
         </div>
       </div>

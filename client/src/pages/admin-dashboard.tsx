@@ -614,7 +614,7 @@ export default function AdminDashboard() {
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", `green-gold-seeds-products-${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.setAttribute("download", `nath-seeds-products-${new Date().toISOString().split('T')[0]}.xlsx`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
@@ -706,7 +706,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
       <Sidebar
-        title="Green Gold Seeds"
+        title="Nath Seeds"
         subtitle="Admin Panel"
         userName={user?.username || "Admin"}
         items={sidebarItems}

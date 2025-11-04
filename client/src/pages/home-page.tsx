@@ -177,7 +177,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
       <Sidebar
-        title="Green Gold Seeds"
+        title="Nath Seeds"
         subtitle="Product Tracking System"
         userName={user?.username || "Operator"}
         items={sidebarItems}

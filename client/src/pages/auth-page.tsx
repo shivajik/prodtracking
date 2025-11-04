@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sprout, Phone, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
+import logoUrl from "@assets/nbil-logo-a_1762228411331.png";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
@@ -61,10 +62,10 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-yellow-50 px-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <div className="mx-auto h-16 w-16 bg-primary rounded-full flex items-center justify-center mb-4">
-            <Sprout className="h-8 w-8 text-primary-foreground" />
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            <img src={logoUrl} alt="Nath Seeds Logo" className="h-20 w-auto object-contain" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Green Gold Seeds</h1>
+          <h1 className="text-3xl font-bold text-foreground">Nath Seeds</h1>
           <p className="text-muted-foreground mt-2">Product Tracking System</p>
         </div>
 
@@ -142,16 +143,26 @@ export default function AuthPage() {
         </Card>
 
         <div className="text-center text-sm text-muted-foreground mt-6">
-          <p>Gut No. 65, Narayanpur Shivar, Waluj, Gangapur</p>
-          <p>Dist: Chh. Sambhajinagar-431001</p>
-          <div className="flex items-center justify-center gap-4 mt-2">
-            <div className="flex items-center gap-1">
-              <Mail className="h-4 w-4" />
-              <span>greengoldseeds@rediffmail.com</span>
+          <div className="mb-4">
+            <p className="font-semibold text-foreground">Registered Office</p>
+            <p>Nath House, Nath Road,</p>
+            <p>Chhatrapati Sambhajinagar-431005, Maharashtra</p>
+            <div className="flex items-center justify-center gap-1 mt-1">
+              <Phone className="h-3 w-3" />
+              <span>+91-240-3502421 to 25, +91-0240-6645555</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Phone className="h-4 w-4" />
-              <span>+91 88888 66031</span>
+            <div className="flex items-center justify-center gap-1 mt-1">
+              <Mail className="h-3 w-3" />
+              <span>info@nathseeds.com</span>
+            </div>
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">Corporate Office</p>
+            <p>1 Chateau Windsor, 86 Veer Nariman Road,</p>
+            <p>Churchgate, Mumbai- 400020, Maharashtra</p>
+            <div className="flex items-center justify-center gap-1 mt-1">
+              <Phone className="h-3 w-3" />
+              <span>+91-22- 22875652 to 55</span>
             </div>
           </div>
         </div>

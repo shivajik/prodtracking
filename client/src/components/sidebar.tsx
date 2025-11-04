@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sprout, LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import logoUrl from "@assets/nbil-logo-a_1762228411331.png";
 
 export interface SidebarItem {
   id: string;
@@ -58,9 +59,7 @@ export default function Sidebar({
           {/* Header */}
           <div className="flex h-16 items-center border-b border-border px-6">
             <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
-                <Sprout className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img src={logoUrl} alt="Nath Seeds Logo" className="h-10 w-auto object-contain" />
               <div className="flex-1 min-w-0">
                 <h1 className="text-sm font-semibold text-foreground truncate">
                   {title}
