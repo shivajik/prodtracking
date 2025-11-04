@@ -172,6 +172,16 @@ export const insertProductSchema = createInsertSchema(products).omit({
   location: z.string().nullable().optional(),
   stageCode: z.string().nullable().optional(),
   stackNo: z.string().nullable().optional(),
+  mrp: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
+  unitSalePrice: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
+  noOfPkts: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
+  totalPkts: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
+  gb: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
+  remainingQuantity: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
+  normalGermination: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
+  gerAve: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
+  gotPercent: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
+  gotAve: z.union([z.string(), z.number()]).transform(val => String(val)).nullable().optional(),
 });
 
 // Crop and variety schemas
