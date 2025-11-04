@@ -89,43 +89,12 @@ export default function PublicProduct() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <img src={logoUrl} alt="Nath Seeds Logo" className="h-16 w-auto object-contain" />
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Nath Seeds</h1>
-                <p className="text-sm text-muted-foreground">Product Tracking System</p>
-              </div>
-            </div>
-            
-            <div className="text-right text-sm text-muted-foreground">
-              <div className="mb-3">
-                <p className="font-semibold text-foreground">Registered Office</p>
-                <p>Nath House, Nath Road,</p>
-                <p>Chhatrapati Sambhajinagar-431005, Maharashtra</p>
-                <div className="flex items-center gap-1 justify-end mt-1">
-                  <Phone className="h-3 w-3" />
-                  <span>+91-240-3502421 to 25</span>
-                </div>
-                <div className="flex items-center gap-1 justify-end">
-                  <Phone className="h-3 w-3" />
-                  <span>+91-0240-6645555</span>
-                </div>
-                <div className="flex items-center gap-1 justify-end mt-1">
-                  <Mail className="h-3 w-3" />
-                  <span>info@nathseeds.com</span>
-                </div>
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">Corporate Office</p>
-                <p>1 Chateau Windsor, 86 Veer Nariman Road,</p>
-                <p>Churchgate, Mumbai- 400020, Maharashtra</p>
-                <div className="flex items-center gap-1 justify-end mt-1">
-                  <Phone className="h-3 w-3" />
-                  <span>+91-22- 22875652 to 55</span>
-                </div>
-              </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-center space-x-4">
+            <img src={logoUrl} alt="Nath Seeds Logo" className="h-16 w-auto object-contain" />
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Nath Seeds</h1>
+              <p className="text-sm text-muted-foreground">Product Tracking System</p>
             </div>
           </div>
         </div>
@@ -387,41 +356,6 @@ export default function PublicProduct() {
           </CardContent>
         </Card>
 
-        {/* Company Information */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Company Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">Company Address</h4>
-                <p className="text-muted-foreground whitespace-pre-line" data-testid="text-company-address">
-                  {product.companyAddress}
-                </p>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">Contact Information</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    <span className="text-muted-foreground" data-testid="text-customer-care">
-                      {product.customerCare}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span className="text-muted-foreground" data-testid="text-email">
-                      {product.email}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* QR Code Section */}
         <Card className="mb-6">
           <CardHeader>
@@ -501,11 +435,54 @@ export default function PublicProduct() {
         )}
 
         {/* Verification Footer */}
-        <div className="text-center text-sm text-muted-foreground">
+        <div className="text-center text-sm text-muted-foreground mb-8">
           <p>This product information has been verified and approved by Nath Seeds.</p>
           <p className="mt-2">For any queries, please contact our customer care team.</p>
         </div>
       </div>
+
+      {/* Footer with Address Information */}
+      <footer className="bg-card border-t border-border mt-auto">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm items-start">
+            <div>
+              <h3 className="font-semibold text-foreground text-base mb-2">Registered Office</h3>
+              <p className="text-muted-foreground leading-relaxed mb-3">
+                Nath House, Nath Road,<br />
+                Chhatrapati Sambhajinagar-431005, Maharashtra
+              </p>
+              <div className="space-y-1 text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 flex-shrink-0" />
+                  <span>+91-240-3502421 to 25</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 flex-shrink-0" />
+                  <span>+91-0240-6645555</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 flex-shrink-0" />
+                  <span>info@nathseeds.com</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-foreground text-base mb-2">Corporate Office</h3>
+              <p className="text-muted-foreground leading-relaxed mb-3">
+                1 Chateau Windsor, 86 Veer Nariman Road,<br />
+                Churchgate, Mumbai- 400020, Maharashtra
+              </p>
+              <div className="space-y-1 text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 flex-shrink-0" />
+                  <span>+91-22- 22875652 to 55</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
