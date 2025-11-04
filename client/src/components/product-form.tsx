@@ -95,7 +95,7 @@ useEffect(() => {
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
-      company: "Green Gold Seeds Pvt. Ltd.",
+      company: "Nath Biogene India Limited",
       brand: "",
       cropName: "",
       description: "",
@@ -105,10 +105,10 @@ useEffect(() => {
       mfgDate: "",
       expiryDate: "",
       uniqueId: "",
-      customerCare: "+91 88888 66031",
-      email: "greengoldseeds@rediffmail.com",
-      companyAddress: "Gut No. 65, Narayanpur Shivar, Waluj, Gangapur Dist: Chh. Sambhajinagar-431001",
-      marketedBy: "Green Gold Seeds Pvt. Ltd.",
+      customerCare: "+91-240-3502421 to 25",
+      email: "info@nathseeds.com",
+      companyAddress: "Nath House, Nath Road, Chhatrapati Sambhajinagar-431005, Maharashtra",
+      marketedBy: "Nath Biogene India Limited",
       brochureUrl: "",
       brochureFilename: "",
       packSize: "",
@@ -167,7 +167,7 @@ useEffect(() => {
         formData.append("brochure", file);
       } else if (cropVarietyUrl?.url) {
   formData.set("brochureUrl", String(cropVarietyUrl.url));
-  formData.set("brochureFilename", String(cropVarietyUrl.filename || "predefined-brochure"));
+  formData.set("brochureFilename", "predefined-brochure");
       }
 
       const response = await fetch("/api/products", {
